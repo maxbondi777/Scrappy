@@ -9,4 +9,7 @@ import java.util.List;
 
 public interface TaskRepository extends JpaRepository<Task, Long> {
     List<Task> findByUserIdAndDate(Long userId, LocalDate date);
+    long countByUserId(Long userId);
+    long countByUserIdAndStatus(Long userId, Task.Status status);
+    List<Task> findByUserIdAndDateBetween(Long userId, LocalDate startDate, LocalDate endDate);
 }

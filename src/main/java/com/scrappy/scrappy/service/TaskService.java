@@ -1,10 +1,7 @@
 package com.scrappy.scrappy.service;
 
 
-import com.scrappy.scrappy.controller.dto.TaskCreateDTO;
-import com.scrappy.scrappy.controller.dto.TaskDTO;
-import com.scrappy.scrappy.controller.dto.TaskStatusUpdateDTO;
-import com.scrappy.scrappy.controller.dto.TaskUpdateDTO;
+import com.scrappy.scrappy.controller.dto.*;
 import com.scrappy.scrappy.domain.Task;
 import com.scrappy.scrappy.repository.TaskRepository;
 import org.slf4j.Logger;
@@ -12,9 +9,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.TemporalAdjusters;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -94,4 +94,55 @@ public class TaskService {
                 .map(taskMapper::toDto)
                 .collect(Collectors.toList());
     }
+
+    @Transactional(readOnly = true)
+    public TaskStatisticsDTO getTaskStatistics() {
+        logger.debug("Fetching task statistics for userId: 1");
+        Long userId = 1L;
+
+        // Общая статистика
+        long totalTasks = taskRepository.countByUserId(userId);
+        long completed = taskRepository.countByUserIdAndStatus(userId, Task.Status.COMPLETED);
+        long inProgress = taskRepository.countByUserIdAndStatus(userId, Task.Status.PENDING);
+        double completionRate = totalTasks == 0 ? 0.0 : Math.round((completed / (double) totalTasks) * 100.0);
+
+        // Недельная статистика
+        LocalDate today = LocalDate.now();
+        LocalDate monday = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        LocalDate sunday = monday.plusDays(6);
+        List<Task> weeklyTasks = taskRepository.findByUserIdAndDateBetween(userId, monday, sunday);
+
+        WeeklyProgressDTO weeklyProgress = new WeeklyProgressDTO();
+        Map<LocalDate, List<Task>> tasksByDate = weeklyTasks.stream()
+                .collect(Collectors.groupingBy(Task::getDate));
+
+        // Инициализация статистики по дням
+        weeklyProgress.setMonday(getDayProgress(tasksByDate, monday));
+        weeklyProgress.setTuesday(getDayProgress(tasksByDate, monday.plusDays(1)));
+        weeklyProgress.setWednesday(getDayProgress(tasksByDate, monday.plusDays(2)));
+        weeklyProgress.setThursday(getDayProgress(tasksByDate, monday.plusDays(3)));
+        weeklyProgress.setFriday(getDayProgress(tasksByDate, monday.plusDays(4)));
+        weeklyProgress.setSaturday(getDayProgress(tasksByDate, monday.plusDays(5)));
+        weeklyProgress.setSunday(getDayProgress(tasksByDate, monday.plusDays(6)));
+
+        TaskStatisticsDTO statistics = new TaskStatisticsDTO();
+        statistics.setTotalTasks(totalTasks);
+        statistics.setCompleted(completed);
+        statistics.setInProgress(inProgress);
+        statistics.setCompletionRate(completionRate);
+        statistics.setWeeklyProgress(weeklyProgress);
+
+        return statistics;
+    }
+
+    private WeeklyProgressDTO.DayProgressDTO getDayProgress(Map<LocalDate, List<Task>> tasksByDate, LocalDate date) {
+        WeeklyProgressDTO.DayProgressDTO dayProgress = new WeeklyProgressDTO.DayProgressDTO();
+        List<Task> tasks = tasksByDate.getOrDefault(date, List.of());
+        long total = tasks.size();
+        long completed = tasks.stream().filter(task -> task.getStatus() == Task.Status.COMPLETED).count();
+        dayProgress.setTotal(total);
+        dayProgress.setCompleted(completed);
+        return dayProgress;
+    }
+
 }
