@@ -1,10 +1,6 @@
 package com.scrappy.scrappy.controller;
 
-import com.scrappy.scrappy.controller.dto.ApiResponse;
-import com.scrappy.scrappy.controller.dto.TaskCreateDTO;
-import com.scrappy.scrappy.controller.dto.TaskDTO;
-import com.scrappy.scrappy.controller.dto.TaskStatusUpdateDTO;
-import com.scrappy.scrappy.controller.dto.TaskUpdateDTO;
+import com.scrappy.scrappy.controller.dto.*;
 import com.scrappy.scrappy.service.TaskService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -84,6 +80,14 @@ public class TaskController {
         logger.debug("Received GET /tasks/by-date/{}", date);
         List<TaskDTO> tasks = taskService.getTasksByDate(date);
         ApiResponse<List<TaskDTO>> response = new ApiResponse<>(tasks, null);
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    @GetMapping(value = "/statistics", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<ApiResponse<TaskStatisticsDTO>> getTaskStatistics() {
+        logger.debug("Received GET /tasks/statistics");
+        TaskStatisticsDTO statistics = taskService.getTaskStatistics();
+        ApiResponse<TaskStatisticsDTO> response = new ApiResponse<>(statistics, null);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 }
