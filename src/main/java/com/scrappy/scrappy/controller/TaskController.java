@@ -1,7 +1,8 @@
 package com.scrappy.scrappy.controller;
 
 import com.scrappy.scrappy.controller.dto.*;
-import com.scrappy.scrappy.service.TaskService;
+import com.scrappy.scrappy.controller.dto.task.*;
+import com.scrappy.scrappy.service.task.TaskService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -1,13 +1,12 @@
 package com.scrappy.scrappy.controller;
 
 import com.scrappy.scrappy.controller.dto.ApiResponse;
-import com.scrappy.scrappy.controller.dto.NoteCreateDTO;
-import com.scrappy.scrappy.controller.dto.NoteDTO;
-import com.scrappy.scrappy.controller.dto.NoteUpdateDTO;
-import com.scrappy.scrappy.controller.dto.NotesResponseDTO;
-import com.scrappy.scrappy.domain.User;
+import com.scrappy.scrappy.controller.dto.note.NoteCreateDTO;
+import com.scrappy.scrappy.controller.dto.note.NoteDTO;
+import com.scrappy.scrappy.controller.dto.note.NoteUpdateDTO;
+import com.scrappy.scrappy.controller.dto.note.NotesResponseDTO;
 import com.scrappy.scrappy.repository.UserRepository;
-import com.scrappy.scrappy.service.NoteService;
+import com.scrappy.scrappy.service.note.NoteService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
