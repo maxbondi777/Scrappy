@@ -11,6 +11,6 @@ public interface MarketItemRepository extends JpaRepository<MarketItemEntity, Lo
     List<MarketItemEntity> findByCategoryName(String categoryName);
     List<MarketItemEntity> findByPurchasedTrue();
     List<MarketItemEntity> findByIsPremiumTrue();
-    @Query("SELECT m FROM MarketItem m WHERE LOWER(m.name) LIKE LOWER(CONCAT('%', :query, '%')) OR LOWER(m.description) LIKE LOWER(CONCAT('%', :query, '%'))")
+    @Query("SELECT m FROM MarketItemEntity m WHERE LOWER(m.name) LIKE LOWER(CONCAT('%', :query, '%')) OR LOWER(m.description) LIKE LOWER(CONCAT('%', :query, '%'))")
     List<MarketItemEntity> searchByNameOrDescription(@Param("query") String query);
 }

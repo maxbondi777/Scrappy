@@ -13,13 +13,13 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 
 public interface NoteRepository extends JpaRepository<NoteEntity, Long> {
-    @Query("SELECT n FROM Note n WHERE n.user = :user AND (:category IS NULL OR n.category = :category) AND " +
+    @Query("SELECT n FROM NoteEntity n WHERE n.user = :user AND (:category IS NULL OR n.category = :category) AND " +
             "(:search IS NULL OR LOWER(n.title) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             "LOWER(CAST(n.tags AS string)) LIKE LOWER(CONCAT('%', :search, '%')))")
     Page<NoteEntity> findByUserAndFilters(@Param("user") UserEntity user, @Param("category") CategoryType category,
                                     @Param("search") String search, Pageable pageable);
 
-    @Query("SELECT new com.scrappy.scrappy.controller.dto.CategoryStatsDTO(n.category, COUNT(n)) " +
-            "FROM Note n WHERE n.user = :user GROUP BY n.category")
+    @Query("SELECT new com.scrappy.scrappy.controller.dto.category.CategoryStatsDTO(n.category, COUNT(n)) " +
+            "FROM NoteEntity n WHERE n.user = :user GROUP BY n.category")
     List<CategoryStatsDTO> getCategoryStatsByUser(@Param("user") UserEntity user);
 }
