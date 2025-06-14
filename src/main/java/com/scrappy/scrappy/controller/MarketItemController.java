@@ -1,9 +1,9 @@
 package com.scrappy.scrappy.controller;
 
 import com.scrappy.scrappy.controller.dto.ApiResponse;
-import com.scrappy.scrappy.controller.dto.MarketItemCreateDTO;
-import com.scrappy.scrappy.controller.dto.MarketItemDTO;
-import com.scrappy.scrappy.service.MarketItemService;
+import com.scrappy.scrappy.controller.dto.market.MarketItemCreateDTO;
+import com.scrappy.scrappy.controller.dto.market.MarketItemDTO;
+import com.scrappy.scrappy.service.market.MarketItemService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -1,7 +1,7 @@
 package com.scrappy.scrappy.controller;
 
-import com.scrappy.scrappy.controller.dto.HolidayDTO;
-import com.scrappy.scrappy.service.HolidayService;
+import com.scrappy.scrappy.controller.dto.holiday.HolidayDTO;
+import com.scrappy.scrappy.service.holiday.HolidayService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;

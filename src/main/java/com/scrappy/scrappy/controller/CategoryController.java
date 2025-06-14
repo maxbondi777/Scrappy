@@ -1,9 +1,9 @@
 package com.scrappy.scrappy.controller;
 
 import com.scrappy.scrappy.controller.dto.ApiResponse;
-import com.scrappy.scrappy.controller.dto.CategoryCreateDTO;
-import com.scrappy.scrappy.controller.dto.CategoryDTO;
-import com.scrappy.scrappy.service.CategoryService;
+import com.scrappy.scrappy.controller.dto.category.CategoryCreateDTO;
+import com.scrappy.scrappy.controller.dto.category.CategoryDTO;
+import com.scrappy.scrappy.service.category.CategoryService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
