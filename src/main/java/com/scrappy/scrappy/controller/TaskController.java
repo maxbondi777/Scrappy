@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/tasks")
+@CrossOrigin(origins = {"https://localhost:5173", "https://192.168.1.186:5173"}, allowCredentials = "true")
 public class TaskController {
 
     private static final Logger logger = LoggerFactory.getLogger(TaskController.class);

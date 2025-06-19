@@ -16,6 +16,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/market/categories")
+@CrossOrigin(origins = {"https://localhost:5173", "https://192.168.1.186:5173"}, allowCredentials = "true")
 public class CategoryController {
 
     private static final Logger logger = LoggerFactory.getLogger(CategoryController.class);
