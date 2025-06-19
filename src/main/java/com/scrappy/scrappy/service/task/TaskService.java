@@ -31,36 +31,45 @@ public class TaskService {
     }
 
     @Transactional
-    public TaskDTO createTask(TaskCreateDTO taskCreateDTO) {
-        logger.debug("Creating task with DTO: {}", taskCreateDTO);
-        TaskEntity task = taskMapper.toEntity(taskCreateDTO, 1L); // Фиксированный userId=1
-        TaskEntity savedTask = taskRepository.save(task);
-        return taskMapper.toDto(savedTask);
+    public TaskDTO createTask(TaskCreateDTO taskCreateDTO, Long userId) {
+        logger.debug("Creating task with DTO: {}, userId: {}", taskCreateDTO, userId);
+        try {
+            TaskEntity task = taskMapper.toEntity(taskCreateDTO, userId);
+            TaskEntity savedTask = taskRepository.save(task);
+            logger.info("Task created successfully for userId: {}", userId);
+            return taskMapper.toDto(savedTask);
+        } catch (IllegalArgumentException e) {
+            logger.error("Failed to create task: {}", e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            logger.error("Unexpected error while creating task: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to create task: " + e.getMessage(), e);
+        }
     }
 
     @Transactional(readOnly = true)
-    public List<TaskDTO> getAllTasks() {
-        logger.debug("Fetching all tasks");
+    public List<TaskDTO> getAllTasks(Long userId) {
+        logger.debug("Fetching all tasks for userId: {}", userId);
         return taskRepository.findAll().stream()
-                .filter(task -> task.getUserId().equals(1L))
+                .filter(task -> task.getUser().getId().equals(userId))
                 .map(taskMapper::toDto)
                 .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
-    public TaskDTO getTaskById(Long id) {
-        logger.debug("Fetching task with id: {}", id);
+    public TaskDTO getTaskById(Long id, Long userId) {
+        logger.debug("Fetching task with id: {}, userId: {}", id, userId);
         TaskEntity task = taskRepository.findById(id)
-                .filter(t -> t.getUserId().equals(1L))
+                .filter(t -> t.getUser().getId().equals(userId))
                 .orElseThrow(() -> new IllegalArgumentException("Task not found or not owned by user"));
         return taskMapper.toDto(task);
     }
 
     @Transactional
-    public TaskDTO updateTask(Long id, TaskUpdateDTO taskUpdateDTO) {
-        logger.debug("Updating task with id: {}", id);
+    public TaskDTO updateTask(Long id, TaskUpdateDTO taskUpdateDTO, Long userId) {
+        logger.debug("Updating task with id: {}, userId: {}", id, userId);
         TaskEntity task = taskRepository.findById(id)
-                .filter(t -> t.getUserId().equals(1L))
+                .filter(t -> t.getUser().getId().equals(userId))
                 .orElseThrow(() -> new IllegalArgumentException("Task not found or not owned by user"));
         taskMapper.updateEntity(taskUpdateDTO, task);
         TaskEntity updatedTask = taskRepository.save(task);
@@ -68,10 +77,10 @@ public class TaskService {
     }
 
     @Transactional
-    public TaskDTO updateTaskStatus(Long id, TaskStatusUpdateDTO statusUpdateDTO) {
-        logger.debug("Updating status for task with id: {}", id);
+    public TaskDTO updateTaskStatus(Long id, TaskStatusUpdateDTO statusUpdateDTO, Long userId) {
+        logger.debug("Updating status for task with id: {}, userId: {}", id, userId);
         TaskEntity task = taskRepository.findById(id)
-                .filter(t -> t.getUserId().equals(1L))
+                .filter(t -> t.getUser().getId().equals(userId))
                 .orElseThrow(() -> new IllegalArgumentException("Task not found or not owned by user"));
         task.setStatus(TaskEntity.Status.valueOf(statusUpdateDTO.getStatus().toUpperCase()));
         TaskEntity updatedTask = taskRepository.save(task);
@@ -79,35 +88,32 @@ public class TaskService {
     }
 
     @Transactional
-    public void deleteTask(Long id) {
-        logger.debug("Deleting task with id: {}", id);
+    public void deleteTask(Long id, Long userId) {
+        logger.debug("Deleting task with id: {}, userId: {}", id, userId);
         TaskEntity task = taskRepository.findById(id)
-                .filter(t -> t.getUserId().equals(1L))
+                .filter(t -> t.getUser().getId().equals(userId))
                 .orElseThrow(() -> new IllegalArgumentException("Task not found or not owned by user"));
         taskRepository.delete(task);
     }
 
     @Transactional(readOnly = true)
-    public List<TaskDTO> getTasksByDate(String date) {
-        logger.debug("Fetching tasks for date: {}", date);
-        LocalDate localDate = LocalDate.parse(date, DateTimeFormatter.ISO_LOCAL_DATE);
-        return taskRepository.findByUserIdAndDate(1L, localDate).stream()
+    public List<TaskDTO> getTasksByDate(String date, Long userId) {
+        logger.debug("Fetching tasks for date: {}, userId: {}", date, userId);
+        LocalDate localDate = LocalDate.parse(date, java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
+        return taskRepository.findByUserAndDate(userId, localDate).stream()
                 .map(taskMapper::toDto)
                 .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
-    public TaskStatisticsDTO getTaskStatistics() {
-        logger.debug("Fetching task statistics for userId: 1");
-        Long userId = 1L;
+    public TaskStatisticsDTO getTaskStatistics(Long userId) {
+        logger.debug("Fetching task statistics for userId: {}", userId);
 
-        // Общая статистика
         long totalTasks = taskRepository.countByUserId(userId);
         long completed = taskRepository.countByUserIdAndStatus(userId, TaskEntity.Status.COMPLETED);
-        long inProgress = taskRepository.countByUserIdAndStatus(userId, TaskEntity.Status.PENDING);
+        long inProgress = taskRepository.countByUserIdAndStatus(userId, TaskEntity.Status.IN_PROGRESS);
         double completionRate = totalTasks == 0 ? 0.0 : Math.round((completed / (double) totalTasks) * 100.0);
 
-        // Недельная статистика
         LocalDate today = LocalDate.now();
         LocalDate monday = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         LocalDate sunday = monday.plusDays(6);
@@ -117,7 +123,6 @@ public class TaskService {
         Map<LocalDate, List<TaskEntity>> tasksByDate = weeklyTasks.stream()
                 .collect(Collectors.groupingBy(TaskEntity::getDate));
 
-        // Инициализация статистики по дням
         weeklyProgress.setMonday(getDayProgress(tasksByDate, monday));
         weeklyProgress.setTuesday(getDayProgress(tasksByDate, monday.plusDays(1)));
         weeklyProgress.setWednesday(getDayProgress(tasksByDate, monday.plusDays(2)));
@@ -146,4 +151,10 @@ public class TaskService {
         return dayProgress;
     }
 
+    public List<TaskDTO> getTasksByUserId(Long userId) {
+        List<TaskEntity> tasks = taskRepository.findByUserId(userId);
+        return tasks.stream()
+                .map(taskMapper::toDto)
+                .collect(Collectors.toList());
+    }
 }

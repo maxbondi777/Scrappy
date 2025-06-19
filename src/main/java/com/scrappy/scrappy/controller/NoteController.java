@@ -34,7 +34,6 @@ public class NoteController {
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<NoteDTO>> createNote(@Valid @RequestBody NoteCreateDTO createDTO,
                                                            @RequestHeader("X-User-Id") Long userId) {
-        logger.debug("Received POST /api/notes for userId: {}", userId);
         NoteDTO noteDTO = noteService.createNote(createDTO, userId);
         ApiResponse<NoteDTO> response = new ApiResponse<>(noteDTO, null);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
@@ -47,7 +46,6 @@ public class NoteController {
             @RequestParam(value = "search", required = false) String search,
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "10") int size) {
-        logger.debug("Received GET /api/notes for userId: {}", userId);
         NotesResponseDTO responseDTO = noteService.getNotes(userId, category, search, page, size);
         ApiResponse<NotesResponseDTO> response = new ApiResponse<>(responseDTO, null);
         return new ResponseEntity<>(response, HttpStatus.OK);
@@ -56,7 +54,6 @@ public class NoteController {
     @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<NoteDTO>> getNoteById(@PathVariable Long id,
                                                             @RequestHeader("X-User-Id") Long userId) {
-        logger.debug("Received GET /api/notes/{} for userId: {}", id, userId);
         NoteDTO noteDTO = noteService.getNoteById(id, userId);
         ApiResponse<NoteDTO> response = new ApiResponse<>(noteDTO, null);
         return new ResponseEntity<>(response, HttpStatus.OK);
@@ -66,7 +63,6 @@ public class NoteController {
     public ResponseEntity<ApiResponse<NoteDTO>> updateNote(@PathVariable Long id,
                                                            @Valid @RequestBody NoteUpdateDTO updateDTO,
                                                            @RequestHeader("X-User-Id") Long userId) {
-        logger.debug("Received PUT /api/notes/{} for userId: {}", id, userId);
         NoteDTO noteDTO = noteService.updateNote(id, updateDTO, userId);
         ApiResponse<NoteDTO> response = new ApiResponse<>(noteDTO, null);
         return new ResponseEntity<>(response, HttpStatus.OK);
@@ -75,7 +71,6 @@ public class NoteController {
     @DeleteMapping(value = "/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteNote(@PathVariable Long id,
                                                         @RequestHeader("X-User-Id") Long userId) {
-        logger.debug("Received DELETE /api/notes/{} for userId: {}", id, userId);
         noteService.deleteNote(id, userId);
         ApiResponse<Void> response = new ApiResponse<>(null, null);
         return new ResponseEntity<>(response, HttpStatus.NO_CONTENT);
@@ -84,7 +79,6 @@ public class NoteController {
     @PatchMapping(value = "/{id}/pin", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<NoteDTO>> togglePin(@PathVariable Long id,
                                                           @RequestHeader("X-User-Id") Long userId) {
-        logger.debug("Received PATCH /api/notes/{}/pin for userId: {}", id, userId);
         NoteDTO noteDTO = noteService.togglePin(id, userId);
         ApiResponse<NoteDTO> response = new ApiResponse<>(noteDTO, null);
         return new ResponseEntity<>(response, HttpStatus.OK);
@@ -92,14 +86,12 @@ public class NoteController {
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiResponse<Void>> handleIllegalArgumentException(IllegalArgumentException ex) {
-        logger.error("Illegal argument error: {}", ex.getMessage());
         ApiResponse<Void> response = new ApiResponse<>(null, ex.getMessage());
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Void>> handleValidationException(MethodArgumentNotValidException ex) {
-        logger.error("Validation error: {}", ex.getMessage());
         String errorMessage = ex.getBindingResult().getFieldErrors().stream()
                 .map(error -> error.getField() + ": " + error.getDefaultMessage())
                 .collect(Collectors.joining("; "));

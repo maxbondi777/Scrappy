@@ -26,17 +26,16 @@ public class CategoryController {
     }
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<ApiResponse<CategoryDTO>> createCategory(@Valid @RequestBody CategoryCreateDTO createDTO) {
-        logger.debug("Received POST /api/market/categories with DTO: {}", createDTO);
-        CategoryDTO categoryDTO = categoryService.createCategory(createDTO);
+    public ResponseEntity<ApiResponse<CategoryDTO>> createCategory(@Valid @RequestBody CategoryCreateDTO createDTO,
+                                                                   @RequestHeader("X-User-Id") Long userId) {
+        CategoryDTO categoryDTO = categoryService.createCategory(createDTO, userId);
         ApiResponse<CategoryDTO> response = new ApiResponse<>(categoryDTO, null);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<ApiResponse<List<CategoryDTO>>> getAllCategories() {
-        logger.debug("Received GET /api/market/categories");
-        List<CategoryDTO> categories = categoryService.getAllCategories();
+    public ResponseEntity<ApiResponse<List<CategoryDTO>>> getAllCategories(@RequestHeader("X-User-Id") Long userId) {
+        List<CategoryDTO> categories = categoryService.getAllCategories(userId);
         ApiResponse<List<CategoryDTO>> response = new ApiResponse<>(categories, null);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }

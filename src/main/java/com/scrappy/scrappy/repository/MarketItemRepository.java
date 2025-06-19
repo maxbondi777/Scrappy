@@ -8,9 +8,17 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 
 public interface MarketItemRepository extends JpaRepository<MarketItemEntity, Long> {
-    List<MarketItemEntity> findByCategoryName(String categoryName);
-    List<MarketItemEntity> findByPurchasedTrue();
-    List<MarketItemEntity> findByIsPremiumTrue();
-    @Query("SELECT m FROM MarketItemEntity m WHERE LOWER(m.name) LIKE LOWER(CONCAT('%', :query, '%')) OR LOWER(m.description) LIKE LOWER(CONCAT('%', :query, '%'))")
+
+    @Query("SELECT m FROM MarketItemEntity m WHERE m.user.id = :userId AND m.purchased = true")
+    List<MarketItemEntity> findByPurchasedTrueAndUserId(@Param("userId") Long userId);
+
+    @Query("SELECT m FROM MarketItemEntity m WHERE m.user.id = :userId AND m.category.name = :categoryName")
+    List<MarketItemEntity> findByCategoryNameAndUserId(@Param("categoryName") String categoryName, @Param("userId") Long userId);
+
+    @Query("SELECT m FROM MarketItemEntity m WHERE m.user.id = :userId AND m.isPremium = true")
+    List<MarketItemEntity> findByIsPremiumTrueAndUserId(@Param("userId") Long userId);
+
+    @Query("SELECT m FROM MarketItemEntity m WHERE m.name LIKE %:query% OR m.description LIKE %:query%")
     List<MarketItemEntity> searchByNameOrDescription(@Param("query") String query);
+
 }

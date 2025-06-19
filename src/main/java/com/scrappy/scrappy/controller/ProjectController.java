@@ -32,7 +32,6 @@ public class ProjectController {
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<ProjectDTO>> createProject(@Valid @RequestBody ProjectCreateDTO createDTO,
                                                                  @RequestHeader("X-User-Id") Long userId) {
-        logger.debug("Received POST /api/projects for userId: {}", userId);
         ProjectDTO projectDTO = projectService.createProject(createDTO, userId);
         ApiResponse<ProjectDTO> response = new ApiResponse<>(projectDTO, null);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
@@ -40,7 +39,6 @@ public class ProjectController {
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<List<ProjectDTO>>> getAllProjects(@RequestHeader("X-User-Id") Long userId) {
-        logger.debug("Received GET /api/projects for userId: {}", userId);
         List<ProjectDTO> projects = projectService.getAllProjects(userId);
         ApiResponse<List<ProjectDTO>> response = new ApiResponse<>(projects, null);
         return new ResponseEntity<>(response, HttpStatus.OK);
@@ -50,7 +48,6 @@ public class ProjectController {
     public ResponseEntity<ApiResponse<ProjectDTO>> updateProject(@PathVariable UUID projectId,
                                                                  @Valid @RequestBody ProjectCreateDTO updateDTO,
                                                                  @RequestHeader("X-User-Id") Long userId) {
-        logger.debug("Received PUT /api/projects/{} for userId: {}", projectId, userId);
         ProjectDTO projectDTO = projectService.updateProject(projectId, updateDTO, userId);
         ApiResponse<ProjectDTO> response = new ApiResponse<>(projectDTO, null);
         return new ResponseEntity<>(response, HttpStatus.OK);
@@ -59,7 +56,6 @@ public class ProjectController {
     @DeleteMapping(value = "/{projectId}")
     public ResponseEntity<ApiResponse<Void>> deleteProject(@PathVariable UUID projectId,
                                                            @RequestHeader("X-User-Id") Long userId) {
-        logger.debug("Received DELETE /api/projects/{} for userId: {}", projectId, userId);
         projectService.deleteProject(projectId, userId);
         ApiResponse<Void> response = new ApiResponse<>(null, null);
         return new ResponseEntity<>(response, HttpStatus.NO_CONTENT);
@@ -69,7 +65,6 @@ public class ProjectController {
     public ResponseEntity<ApiResponse<InviteDTO>> createInvite(@PathVariable UUID projectId,
                                                                @Valid @RequestBody InviteCreateDTO inviteDTO,
                                                                @RequestHeader("X-User-Id") Long userId) {
-        logger.debug("Received POST /api/projects/{}/invites for userId: {}", projectId, userId);
         InviteDTO invite = projectService.createInvite(projectId, inviteDTO, userId);
         ApiResponse<InviteDTO> response = new ApiResponse<>(invite, null);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
@@ -78,7 +73,6 @@ public class ProjectController {
     @GetMapping(value = "/{projectId}/members", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<MembersResponseDTO>> getMembers(@PathVariable UUID projectId,
                                                                       @RequestHeader("X-User-Id") Long userId) {
-        logger.debug("Received GET /api/projects/{}/members for userId: {}", projectId, userId);
         MembersResponseDTO members = projectService.getMembers(projectId, userId);
         ApiResponse<MembersResponseDTO> response = new ApiResponse<>(members, null);
         return new ResponseEntity<>(response, HttpStatus.OK);
@@ -88,7 +82,6 @@ public class ProjectController {
     public ResponseEntity<ApiResponse<Void>> removeMember(@PathVariable UUID projectId,
                                                           @RequestBody Map<String, String> request,
                                                           @RequestHeader("X-User-Id") Long userId) {
-        logger.debug("Received DELETE /api/projects/{}/members for userId: {}", projectId, userId);
         String userIdToRemove = request.get("userId");
         projectService.removeMember(projectId, userIdToRemove, userId);
         ApiResponse<Void> response = new ApiResponse<>(null, null);

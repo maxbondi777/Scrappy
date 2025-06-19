@@ -25,8 +25,9 @@ public class CategoryService {
     }
 
     @Transactional
-    public CategoryDTO createCategory(CategoryCreateDTO createDTO) {
-        logger.debug("Creating category with DTO: {}", createDTO);
+    public CategoryDTO createCategory(CategoryCreateDTO createDTO, Long userId) {
+        logger.debug("Creating category with DTO: {}, userId: {}", createDTO, userId);
+        // Проверка прав (например, только админ)
         if (categoryRepository.findByName(createDTO.getName()).isPresent()) {
             throw new IllegalArgumentException("Category already exists: " + createDTO.getName());
         }
@@ -36,8 +37,9 @@ public class CategoryService {
     }
 
     @Transactional(readOnly = true)
-    public List<CategoryDTO> getAllCategories() {
-        logger.debug("Fetching all categories");
+    public List<CategoryDTO> getAllCategories(Long userId) {
+        logger.debug("Fetching all categories for userId: {}", userId);
+        // Возвращаем все категории, если это глобальные данные
         return categoryRepository.findAll().stream()
                 .map(categoryMapper::toDto)
                 .collect(Collectors.toList());

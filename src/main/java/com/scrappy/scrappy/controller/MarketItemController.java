@@ -13,7 +13,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-
 @RestController
 @RequestMapping("/api/market/items")
 public class MarketItemController {
@@ -26,41 +25,40 @@ public class MarketItemController {
     }
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<ApiResponse<MarketItemDTO>> createMarketItem(@Valid @RequestBody MarketItemCreateDTO createDTO) {
-        logger.debug("Received POST /api/market/items with DTO: {}", createDTO);
-        MarketItemDTO itemDTO = marketItemService.createMarketItem(createDTO);
+    public ResponseEntity<ApiResponse<MarketItemDTO>> createMarketItem(@Valid @RequestBody MarketItemCreateDTO createDTO,
+                                                                       @RequestHeader("X-User-Id") Long userId) {
+        MarketItemDTO itemDTO = marketItemService.createMarketItem(createDTO, userId);
         ApiResponse<MarketItemDTO> response = new ApiResponse<>(itemDTO, null);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<ApiResponse<List<MarketItemDTO>>> getAllMarketItems() {
-        logger.debug("Received GET /api/market/items");
-        List<MarketItemDTO> items = marketItemService.getAllMarketItems();
+    public ResponseEntity<ApiResponse<List<MarketItemDTO>>> getAllMarketItems(@RequestHeader("X-User-Id") Long userId) {
+        List<MarketItemDTO> items = marketItemService.getAllMarketItems(userId);
         ApiResponse<List<MarketItemDTO>> response = new ApiResponse<>(items, null);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<ApiResponse<MarketItemDTO>> getMarketItemById(@PathVariable Long id) {
-        logger.debug("Received GET /api/market/items/{}", id);
-        MarketItemDTO item = marketItemService.getMarketItemById(id);
+    public ResponseEntity<ApiResponse<MarketItemDTO>> getMarketItemById(@PathVariable Long id,
+                                                                        @RequestHeader("X-User-Id") Long userId) {
+        MarketItemDTO item = marketItemService.getMarketItemById(id, userId);
         ApiResponse<MarketItemDTO> response = new ApiResponse<>(item, null);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @GetMapping(value = "/category/{category}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<ApiResponse<List<MarketItemDTO>>> getMarketItemsByCategory(@PathVariable String category) {
-        logger.debug("Received GET /api/market/items/category/{}", category);
-        List<MarketItemDTO> items = marketItemService.getMarketItemsByCategory(category);
+    public ResponseEntity<ApiResponse<List<MarketItemDTO>>> getMarketItemsByCategory(@PathVariable String category,
+                                                                                     @RequestHeader("X-User-Id") Long userId) {
+        List<MarketItemDTO> items = marketItemService.getMarketItemsByCategory(category, userId);
         ApiResponse<List<MarketItemDTO>> response = new ApiResponse<>(items, null);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @GetMapping(value = "/search", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<ApiResponse<List<MarketItemDTO>>> searchMarketItems(@RequestParam("q") String query) {
-        logger.debug("Received GET /api/market/items/search?q={}", query);
-        List<MarketItemDTO> items = marketItemService.searchMarketItems(query);
+    public ResponseEntity<ApiResponse<List<MarketItemDTO>>> searchMarketItems(@RequestParam("q") String query,
+                                                                              @RequestHeader("X-User-Id") Long userId) {
+        List<MarketItemDTO> items = marketItemService.searchMarketItems(query, userId);
         ApiResponse<List<MarketItemDTO>> response = new ApiResponse<>(items, null);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
