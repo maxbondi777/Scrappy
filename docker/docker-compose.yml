@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  app:
+    image: scrappy:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/scrappy_new
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=1234
+    depends_on:
+      - db
+    restart: always
+  db:
+    image: postgres:15
+    environment:
+      - POSTGRES_DB=scrappy_new
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=1234
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: always
+volumes:
+  postgres_data:

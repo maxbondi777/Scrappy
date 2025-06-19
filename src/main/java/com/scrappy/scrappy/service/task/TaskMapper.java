@@ -4,6 +4,8 @@ import com.scrappy.scrappy.controller.dto.task.TaskCreateDTO;
 import com.scrappy.scrappy.controller.dto.task.TaskDTO;
 import com.scrappy.scrappy.controller.dto.task.TaskUpdateDTO;
 import com.scrappy.scrappy.domain.TaskEntity;
+import com.scrappy.scrappy.domain.UserEntity;
+import com.scrappy.scrappy.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -16,11 +18,24 @@ import java.time.format.DateTimeFormatter;
 public class TaskMapper {
 
     private static final Logger logger = LoggerFactory.getLogger(TaskMapper.class);
+    private final UserRepository userRepository;
+
+    public TaskMapper(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
 
     public TaskEntity toEntity(TaskCreateDTO dto, Long userId) {
         logger.debug("Mapping TaskCreateDTO to Task for userId: {}", userId);
         TaskEntity task = new TaskEntity();
-        task.setUserId(userId);
+
+        // Загружаем пользователя из базы
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> {
+                    logger.error("User not found with ID: {}", userId);
+                    return new IllegalArgumentException("User not found with ID: " + userId);
+                });
+
+        task.setUser(user); // Привязываем загруженного пользователя
         task.setTitle(dto.getTitle());
         task.setDescription(dto.getDescription());
         task.setDate(LocalDate.parse(dto.getDate(), DateTimeFormatter.ISO_LOCAL_DATE));
@@ -41,7 +56,7 @@ public class TaskMapper {
         logger.debug("Mapping Task to TaskDTO for taskId: {}", task.getId());
         TaskDTO dto = new TaskDTO();
         dto.setId(task.getId());
-        dto.setUserId(task.getUserId());
+        dto.setUserId(task.getUser() != null ? task.getUser().getId() : null); // Получаем ID пользователя
         dto.setTitle(task.getTitle());
         dto.setDescription(task.getDescription());
         dto.setDate(task.getDate().format(DateTimeFormatter.ISO_LOCAL_DATE));

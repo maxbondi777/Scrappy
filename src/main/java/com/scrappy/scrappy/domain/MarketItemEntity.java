@@ -66,4 +66,8 @@ public class MarketItemEntity {
 
     @Column
     private boolean purchased;
+
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private UserEntity user;
 }

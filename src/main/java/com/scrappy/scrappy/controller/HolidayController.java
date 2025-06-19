@@ -25,7 +25,6 @@ public class HolidayController {
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<HolidayDTO>> getAllHolidays() {
-        logger.debug("Received GET /holidays");
         List<HolidayDTO> holidays = holidayService.getAllHolidays();
         return ResponseEntity.ok(holidays);
     }
