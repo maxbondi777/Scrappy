@@ -24,15 +24,15 @@ public class TaskMapper {
         this.userRepository = userRepository;
     }
 
-    public TaskEntity toEntity(TaskCreateDTO dto, Long userId) {
-        logger.debug("Mapping TaskCreateDTO to Task for userId: {}", userId);
+    public TaskEntity toEntity(TaskCreateDTO dto, Long telegramId) {
+        logger.debug("Mapping TaskCreateDTO to Task for telegramId: {}", telegramId);
         TaskEntity task = new TaskEntity();
 
-        // Загружаем пользователя из базы
-        UserEntity user = userRepository.findById(userId)
+        // Загружаем пользователя из базы по telegramId
+        UserEntity user = userRepository.findByTelegramId(telegramId)
                 .orElseThrow(() -> {
-                    logger.error("User not found with ID: {}", userId);
-                    return new IllegalArgumentException("User not found with ID: " + userId);
+                    logger.error("User not found with telegramId: {}", telegramId);
+                    return new IllegalArgumentException("User not found with telegramId: " + telegramId);
                 });
 
         task.setUser(user); // Привязываем загруженного пользователя
@@ -56,7 +56,7 @@ public class TaskMapper {
         logger.debug("Mapping Task to TaskDTO for taskId: {}", task.getId());
         TaskDTO dto = new TaskDTO();
         dto.setId(task.getId());
-        dto.setUserId(task.getUser() != null ? task.getUser().getId() : null); // Получаем ID пользователя
+        dto.setUserId(task.getUser() != null ? task.getUser().getTelegramId() : null); // Используем telegramId
         dto.setTitle(task.getTitle());
         dto.setDescription(task.getDescription());
         dto.setDate(task.getDate().format(DateTimeFormatter.ISO_LOCAL_DATE));

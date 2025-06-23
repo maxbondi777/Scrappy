@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/tasks")
-@CrossOrigin(origins = {"https://localhost:5173", "https://192.168.1.186:5173"}, allowCredentials = "true")
+@CrossOrigin(origins = {"http://localhost:5173", "https://localhost:5173", "https://192.168.1.186:5173", "http://192.168.1.186:5173"}, allowCredentials = "true")
 public class TaskController {
 
     private static final Logger logger = LoggerFactory.getLogger(TaskController.class);
@@ -29,82 +29,82 @@ public class TaskController {
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<TaskDTO>> createTask(@Valid @RequestBody TaskCreateDTO taskCreateDTO,
-                                                           @RequestHeader("X-User-Id") Long userId) {
-        logger.debug("Received POST /tasks with TaskCreateDTO: {}, userId: {}", taskCreateDTO, userId);
-        TaskDTO taskDTO = taskService.createTask(taskCreateDTO, userId);
+                                                           @RequestHeader("X-User-Id") Long telegramId) {
+        logger.debug("Received POST /tasks with TaskCreateDTO: {}, telegramId: {}", taskCreateDTO, telegramId);
+        TaskDTO taskDTO = taskService.createTask(taskCreateDTO, telegramId);
         ApiResponse<TaskDTO> response = new ApiResponse<>(taskDTO, null);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<ApiResponse<List<TaskDTO>>> getAllTasks(@RequestHeader("X-User-Id") Long userId) {
-        logger.debug("Received GET /tasks for userId: {}", userId);
-        List<TaskDTO> tasks = taskService.getAllTasks(userId);
+    public ResponseEntity<ApiResponse<List<TaskDTO>>> getAllTasks(@RequestHeader("X-User-Id") Long telegramId) {
+        logger.debug("Received GET /tasks for telegramId: {}", telegramId);
+        List<TaskDTO> tasks = taskService.getAllTasks(telegramId);
         ApiResponse<List<TaskDTO>> response = new ApiResponse<>(tasks, null);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<TaskDTO>> getTaskById(@PathVariable Long id,
-                                                            @RequestHeader("X-User-Id") Long userId) {
-        logger.debug("Received GET /tasks/{} for userId: {}", id, userId);
-        TaskDTO taskDTO = taskService.getTaskById(id, userId);
+                                                            @RequestHeader("X-User-Id") Long telegramId) {
+        logger.debug("Received GET /tasks/{} for telegramId: {}", id, telegramId);
+        TaskDTO taskDTO = taskService.getTaskById(id, telegramId);
         ApiResponse<TaskDTO> response = new ApiResponse<>(taskDTO, null);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<TaskDTO>> updateTask(@PathVariable Long id, @Valid @RequestBody TaskUpdateDTO taskUpdateDTO,
-                                                           @RequestHeader("X-User-Id") Long userId) {
-        logger.debug("Received PUT /tasks/{} with TaskUpdateDTO: {}, userId: {}", id, taskUpdateDTO, userId);
-        TaskDTO taskDTO = taskService.updateTask(id, taskUpdateDTO, userId);
+                                                           @RequestHeader("X-User-Id") Long telegramId) {
+        logger.debug("Received PUT /tasks/{} with TaskUpdateDTO: {}, telegramId: {}", id, taskUpdateDTO, telegramId);
+        TaskDTO taskDTO = taskService.updateTask(id, taskUpdateDTO, telegramId);
         ApiResponse<TaskDTO> response = new ApiResponse<>(taskDTO, null);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @PatchMapping(value = "/{id}/status", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<TaskDTO>> updateTaskStatus(@PathVariable Long id, @Valid @RequestBody TaskStatusUpdateDTO statusUpdateDTO,
-                                                                 @RequestHeader("X-User-Id") Long userId) {
-        logger.info("Received PATCH /tasks/{}/status with body: {}, userId: {}", id, statusUpdateDTO, userId);
+                                                                 @RequestHeader("X-User-Id") Long telegramId) {
+        logger.info("Received PATCH /tasks/{}/status with body: {}, telegramId: {}", id, statusUpdateDTO, telegramId);
         if (statusUpdateDTO == null || statusUpdateDTO.getStatus() == null) {
             logger.error("TaskStatusUpdateDTO is null or status is missing");
             throw new IllegalArgumentException("Request body or status is missing");
         }
-        TaskDTO taskDTO = taskService.updateTaskStatus(id, statusUpdateDTO, userId);
+        TaskDTO taskDTO = taskService.updateTaskStatus(id, statusUpdateDTO, telegramId);
         ApiResponse<TaskDTO> response = new ApiResponse<>(taskDTO, null);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @DeleteMapping(value = "/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteTask(@PathVariable Long id,
-                                                        @RequestHeader("X-User-Id") Long userId) {
-        logger.debug("Received DELETE /tasks/{} for userId: {}", id, userId);
-        taskService.deleteTask(id, userId);
+                                                        @RequestHeader("X-User-Id") Long telegramId) {
+        logger.debug("Received DELETE /tasks/{} for telegramId: {}", id, telegramId);
+        taskService.deleteTask(id, telegramId);
         ApiResponse<Void> response = new ApiResponse<>(null, null);
         return new ResponseEntity<>(response, HttpStatus.NO_CONTENT);
     }
 
     @GetMapping(value = "/by-date/{date}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<List<TaskDTO>>> getTasksByDate(@PathVariable String date,
-                                                                     @RequestHeader("X-User-Id") Long userId) {
-        logger.debug("Received GET /tasks/by-date/{} for userId: {}", date, userId);
-        List<TaskDTO> tasks = taskService.getTasksByDate(date, userId);
+                                                                     @RequestHeader("X-User-Id") Long telegramId) {
+        logger.debug("Received GET /tasks/by-date/{} for telegramId: {}", date, telegramId);
+        List<TaskDTO> tasks = taskService.getTasksByDate(date, telegramId);
         ApiResponse<List<TaskDTO>> response = new ApiResponse<>(tasks, null);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @GetMapping(value = "/statistics", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<ApiResponse<TaskStatisticsDTO>> getTaskStatistics(@RequestHeader("X-User-Id") Long userId) {
-        logger.debug("Received GET /tasks/statistics for userId: {}", userId);
-        TaskStatisticsDTO statistics = taskService.getTaskStatistics(userId);
+    public ResponseEntity<ApiResponse<TaskStatisticsDTO>> getTaskStatistics(@RequestHeader("X-User-Id") Long telegramId) {
+        logger.debug("Received GET /tasks/statistics for telegramId: {}", telegramId);
+        TaskStatisticsDTO statistics = taskService.getTaskStatistics(telegramId);
         ApiResponse<TaskStatisticsDTO> response = new ApiResponse<>(statistics, null);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @GetMapping("/{userId}")
     public ResponseEntity<ApiResponse<List<TaskDTO>>> getTasks(@PathVariable Long userId,
-                                                               @RequestHeader("X-User-Id") Long requestUserId) {
-        if (!userId.equals(requestUserId)) {
+                                                               @RequestHeader("X-User-Id") Long requestTelegramId) {
+        if (!userId.equals(requestTelegramId)) {
             throw new IllegalArgumentException("Access denied: User ID mismatch");
         }
         List<TaskDTO> tasks = taskService.getTasksByUserId(userId);
