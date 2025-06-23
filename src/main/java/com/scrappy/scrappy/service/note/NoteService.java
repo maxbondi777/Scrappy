@@ -38,20 +38,20 @@ public class NoteService {
     }
 
     @Transactional
-    public NoteDTO createNote(NoteCreateDTO createDTO, Long userId) {
-        logger.debug("Creating note for userId: {}", userId);
-        UserEntity user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+    public NoteDTO createNote(NoteCreateDTO createDTO, Long telegramId) {
+        logger.debug("Creating note for telegramId: {}", telegramId);
+        UserEntity user = userRepository.findByTelegramId(telegramId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with telegramId: " + telegramId));
         NoteEntity note = noteMapper.toEntity(createDTO, user);
         NoteEntity savedNote = noteRepository.save(note);
         return noteMapper.toDto(savedNote);
     }
 
     @Transactional(readOnly = true)
-    public NotesResponseDTO getNotes(Long userId, String category, String search, int page, int size) {
-        logger.debug("Fetching notes for userId: {}, category: {}, search: {}, page: {}, size: {}", userId, category, search, page, size);
-        UserEntity user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+    public NotesResponseDTO getNotes(Long telegramId, String category, String search, int page, int size) {
+        logger.debug("Fetching notes for telegramId: {}, category: {}, search: {}, page: {}, size: {}", telegramId, category, search, page, size);
+        UserEntity user = userRepository.findByTelegramId(telegramId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with telegramId: " + telegramId));
         CategoryType categoryType = category != null && !category.equalsIgnoreCase("all") ? CategoryType.valueOf(category.toUpperCase()) : null;
         Pageable pageable = PageRequest.of(page, size, Sort.by("isPinned").descending().and(Sort.by("updatedAt").descending()));
         Page<NoteEntity> notesPage = noteRepository.findByUserAndFilters(user, categoryType, search, pageable);
@@ -67,22 +67,26 @@ public class NoteService {
     }
 
     @Transactional(readOnly = true)
-    public NoteDTO getNoteById(Long id, Long userId) {
-        logger.debug("Fetching note with id: {} for userId: {}", id, userId);
+    public NoteDTO getNoteById(Long id, Long telegramId) {
+        logger.debug("Fetching note with id: {} for telegramId: {}", id, telegramId);
+        UserEntity user = userRepository.findByTelegramId(telegramId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with telegramId: " + telegramId));
         NoteEntity note = noteRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Note not found: " + id));
-        if (!note.getUser().getId().equals(userId)) {
+        if (!note.getUser().getId().equals(user.getId())) {
             throw new IllegalArgumentException("Access denied: Note does not belong to user");
         }
         return noteMapper.toDto(note);
     }
 
     @Transactional
-    public NoteDTO updateNote(Long id, NoteUpdateDTO updateDTO, Long userId) {
-        logger.debug("Updating note with id: {} for userId: {}", id, userId);
+    public NoteDTO updateNote(Long id, NoteUpdateDTO updateDTO, Long telegramId) {
+        logger.debug("Updating note with id: {} for telegramId: {}", id, telegramId);
+        UserEntity user = userRepository.findByTelegramId(telegramId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with telegramId: " + telegramId));
         NoteEntity note = noteRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Note not found: " + id));
-        if (!note.getUser().getId().equals(userId)) {
+        if (!note.getUser().getId().equals(user.getId())) {
             throw new IllegalArgumentException("Access denied: Note does not belong to user");
         }
         noteMapper.updateEntity(note, updateDTO);
@@ -91,22 +95,26 @@ public class NoteService {
     }
 
     @Transactional
-    public void deleteNote(Long id, Long userId) {
-        logger.debug("Deleting note with id: {} for userId: {}", id, userId);
+    public void deleteNote(Long id, Long telegramId) {
+        logger.debug("Deleting note with id: {} for telegramId: {}", id, telegramId);
+        UserEntity user = userRepository.findByTelegramId(telegramId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with telegramId: " + telegramId));
         NoteEntity note = noteRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Note not found: " + id));
-        if (!note.getUser().getId().equals(userId)) {
+        if (!note.getUser().getId().equals(user.getId())) {
             throw new IllegalArgumentException("Access denied: Note does not belong to user");
         }
         noteRepository.delete(note);
     }
 
     @Transactional
-    public NoteDTO togglePin(Long id, Long userId) {
-        logger.debug("Toggling pin for note with id: {} for userId: {}", id, userId);
+    public NoteDTO togglePin(Long id, Long telegramId) {
+        logger.debug("Toggling pin for note with id: {} for telegramId: {}", id, telegramId);
+        UserEntity user = userRepository.findByTelegramId(telegramId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with telegramId: " + telegramId));
         NoteEntity note = noteRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Note not found: " + id));
-        if (!note.getUser().getId().equals(userId)) {
+        if (!note.getUser().getId().equals(user.getId())) {
             throw new IllegalArgumentException("Access denied: Note does not belong to user");
         }
         note.setPinned(!note.isPinned());

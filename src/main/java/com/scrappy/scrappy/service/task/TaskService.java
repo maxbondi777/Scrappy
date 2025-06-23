@@ -4,7 +4,9 @@ package com.scrappy.scrappy.service.task;
 import com.scrappy.scrappy.controller.dto.task.*;
 import com.scrappy.scrappy.controller.dto.weeklyprogress.WeeklyProgressDTO;
 import com.scrappy.scrappy.domain.TaskEntity;
+import com.scrappy.scrappy.domain.UserEntity;
 import com.scrappy.scrappy.repository.TaskRepository;
+import com.scrappy.scrappy.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -24,19 +26,21 @@ public class TaskService {
     private static final Logger logger = LoggerFactory.getLogger(TaskService.class);
     private final TaskRepository taskRepository;
     private final TaskMapper taskMapper;
+    private final UserRepository userRepository;
 
-    public TaskService(TaskRepository taskRepository, TaskMapper taskMapper) {
+    public TaskService(TaskRepository taskRepository, TaskMapper taskMapper, UserRepository userRepository) {
         this.taskRepository = taskRepository;
         this.taskMapper = taskMapper;
+        this.userRepository = userRepository;
     }
 
     @Transactional
-    public TaskDTO createTask(TaskCreateDTO taskCreateDTO, Long userId) {
-        logger.debug("Creating task with DTO: {}, userId: {}", taskCreateDTO, userId);
+    public TaskDTO createTask(TaskCreateDTO taskCreateDTO, Long telegramId) {
+        logger.debug("Creating task with DTO: {}, telegramId: {}", taskCreateDTO, telegramId);
         try {
-            TaskEntity task = taskMapper.toEntity(taskCreateDTO, userId);
+            TaskEntity task = taskMapper.toEntity(taskCreateDTO, telegramId);
             TaskEntity savedTask = taskRepository.save(task);
-            logger.info("Task created successfully for userId: {}", userId);
+            logger.info("Task created successfully for telegramId: {}", telegramId);
             return taskMapper.toDto(savedTask);
         } catch (IllegalArgumentException e) {
             logger.error("Failed to create task: {}", e.getMessage());
@@ -48,28 +52,33 @@ public class TaskService {
     }
 
     @Transactional(readOnly = true)
-    public List<TaskDTO> getAllTasks(Long userId) {
-        logger.debug("Fetching all tasks for userId: {}", userId);
-        return taskRepository.findAll().stream()
-                .filter(task -> task.getUser().getId().equals(userId))
+    public List<TaskDTO> getAllTasks(Long telegramId) {
+        logger.debug("Fetching all tasks for telegramId: {}", telegramId);
+        UserEntity user = userRepository.findByTelegramId(telegramId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with telegramId: " + telegramId));
+        return taskRepository.findByUserId(user.getId()).stream()
                 .map(taskMapper::toDto)
                 .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
-    public TaskDTO getTaskById(Long id, Long userId) {
-        logger.debug("Fetching task with id: {}, userId: {}", id, userId);
+    public TaskDTO getTaskById(Long id, Long telegramId) {
+        logger.debug("Fetching task with id: {}, telegramId: {}", id, telegramId);
+        UserEntity user = userRepository.findByTelegramId(telegramId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with telegramId: " + telegramId));
         TaskEntity task = taskRepository.findById(id)
-                .filter(t -> t.getUser().getId().equals(userId))
+                .filter(t -> t.getUser().getId().equals(user.getId()))
                 .orElseThrow(() -> new IllegalArgumentException("Task not found or not owned by user"));
         return taskMapper.toDto(task);
     }
 
     @Transactional
-    public TaskDTO updateTask(Long id, TaskUpdateDTO taskUpdateDTO, Long userId) {
-        logger.debug("Updating task with id: {}, userId: {}", id, userId);
+    public TaskDTO updateTask(Long id, TaskUpdateDTO taskUpdateDTO, Long telegramId) {
+        logger.debug("Updating task with id: {}, telegramId: {}", id, telegramId);
+        UserEntity user = userRepository.findByTelegramId(telegramId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with telegramId: " + telegramId));
         TaskEntity task = taskRepository.findById(id)
-                .filter(t -> t.getUser().getId().equals(userId))
+                .filter(t -> t.getUser().getId().equals(user.getId()))
                 .orElseThrow(() -> new IllegalArgumentException("Task not found or not owned by user"));
         taskMapper.updateEntity(taskUpdateDTO, task);
         TaskEntity updatedTask = taskRepository.save(task);
@@ -77,10 +86,12 @@ public class TaskService {
     }
 
     @Transactional
-    public TaskDTO updateTaskStatus(Long id, TaskStatusUpdateDTO statusUpdateDTO, Long userId) {
-        logger.debug("Updating status for task with id: {}, userId: {}", id, userId);
+    public TaskDTO updateTaskStatus(Long id, TaskStatusUpdateDTO statusUpdateDTO, Long telegramId) {
+        logger.debug("Updating status for task with id: {}, telegramId: {}", id, telegramId);
+        UserEntity user = userRepository.findByTelegramId(telegramId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with telegramId: " + telegramId));
         TaskEntity task = taskRepository.findById(id)
-                .filter(t -> t.getUser().getId().equals(userId))
+                .filter(t -> t.getUser().getId().equals(user.getId()))
                 .orElseThrow(() -> new IllegalArgumentException("Task not found or not owned by user"));
         task.setStatus(TaskEntity.Status.valueOf(statusUpdateDTO.getStatus().toUpperCase()));
         TaskEntity updatedTask = taskRepository.save(task);
@@ -88,36 +99,41 @@ public class TaskService {
     }
 
     @Transactional
-    public void deleteTask(Long id, Long userId) {
-        logger.debug("Deleting task with id: {}, userId: {}", id, userId);
+    public void deleteTask(Long id, Long telegramId) {
+        logger.debug("Deleting task with id: {}, telegramId: {}", id, telegramId);
+        UserEntity user = userRepository.findByTelegramId(telegramId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with telegramId: " + telegramId));
         TaskEntity task = taskRepository.findById(id)
-                .filter(t -> t.getUser().getId().equals(userId))
+                .filter(t -> t.getUser().getId().equals(user.getId()))
                 .orElseThrow(() -> new IllegalArgumentException("Task not found or not owned by user"));
         taskRepository.delete(task);
     }
 
     @Transactional(readOnly = true)
-    public List<TaskDTO> getTasksByDate(String date, Long userId) {
-        logger.debug("Fetching tasks for date: {}, userId: {}", date, userId);
+    public List<TaskDTO> getTasksByDate(String date, Long telegramId) {
+        logger.debug("Fetching tasks for date: {}, telegramId: {}", date, telegramId);
+        UserEntity user = userRepository.findByTelegramId(telegramId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with telegramId: " + telegramId));
         LocalDate localDate = LocalDate.parse(date, java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
-        return taskRepository.findByUserAndDate(userId, localDate).stream()
+        return taskRepository.findByUserAndDate(user.getId(), localDate).stream()
                 .map(taskMapper::toDto)
                 .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
-    public TaskStatisticsDTO getTaskStatistics(Long userId) {
-        logger.debug("Fetching task statistics for userId: {}", userId);
-
-        long totalTasks = taskRepository.countByUserId(userId);
-        long completed = taskRepository.countByUserIdAndStatus(userId, TaskEntity.Status.COMPLETED);
-        long inProgress = taskRepository.countByUserIdAndStatus(userId, TaskEntity.Status.IN_PROGRESS);
+    public TaskStatisticsDTO getTaskStatistics(Long telegramId) {
+        logger.debug("Fetching task statistics for telegramId: {}", telegramId);
+        UserEntity user = userRepository.findByTelegramId(telegramId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with telegramId: " + telegramId));
+        long totalTasks = taskRepository.countByUserId(user.getId());
+        long completed = taskRepository.countByUserIdAndStatus(user.getId(), TaskEntity.Status.COMPLETED);
+        long inProgress = taskRepository.countByUserIdAndStatus(user.getId(), TaskEntity.Status.IN_PROGRESS);
         double completionRate = totalTasks == 0 ? 0.0 : Math.round((completed / (double) totalTasks) * 100.0);
 
         LocalDate today = LocalDate.now();
         LocalDate monday = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         LocalDate sunday = monday.plusDays(6);
-        List<TaskEntity> weeklyTasks = taskRepository.findByUserIdAndDateBetween(userId, monday, sunday);
+        List<TaskEntity> weeklyTasks = taskRepository.findByUserIdAndDateBetween(user.getId(), monday, sunday);
 
         WeeklyProgressDTO weeklyProgress = new WeeklyProgressDTO();
         Map<LocalDate, List<TaskEntity>> tasksByDate = weeklyTasks.stream()
@@ -151,8 +167,10 @@ public class TaskService {
         return dayProgress;
     }
 
-    public List<TaskDTO> getTasksByUserId(Long userId) {
-        List<TaskEntity> tasks = taskRepository.findByUserId(userId);
+    public List<TaskDTO> getTasksByUserId(Long telegramId) {
+        UserEntity user = userRepository.findByTelegramId(telegramId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with telegramId: " + telegramId));
+        List<TaskEntity> tasks = taskRepository.findByUserId(user.getId());
         return tasks.stream()
                 .map(taskMapper::toDto)
                 .collect(Collectors.toList());
