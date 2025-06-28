@@ -29,7 +29,7 @@ public class ProjectMapper {
         dto.setAddress(project.getAddress());
         dto.setCreatedAt(project.getCreatedAt());
         dto.setUpdatedAt(project.getUpdatedAt());
-        dto.setOwnerId(project.getOwner().getId());
+        dto.setOwnerTelegramId(project.getOwner().getTelegramId()); // Изменено на getTelegramId
         dto.setCurrentUserRole(currentUserRole != null ? currentUserRole.name().toLowerCase() : null);
         return dto;
     }
@@ -52,7 +52,7 @@ public class ProjectMapper {
 
     public MemberDTO toMemberDto(ProjectMemberEntity member) {
         MemberDTO dto = new MemberDTO();
-        dto.setUserId(member.getUser().getId());
+        dto.setUserId(member.getUser().getTelegramId()); // Изменено на getTelegramId
         dto.setTelegramUsername(member.getUser().getUsername());
         dto.setRole(member.getRole().name().toLowerCase());
         dto.setPosition(member.getPosition());
@@ -94,7 +94,7 @@ public class ProjectMapper {
         ShiftDTO dto = new ShiftDTO();
         dto.setId(shift.getId());
         dto.setProjectId(shift.getProject().getId());
-        dto.setUserId(shift.getUser().getId());
+        dto.setUserId(shift.getUser().getTelegramId());
         dto.setDate(shift.getDate());
         dto.setStartTime(shift.getStartTime());
         dto.setEndTime(shift.getEndTime());
@@ -104,7 +104,7 @@ public class ProjectMapper {
 
     public CalendarDTO.EmployeeShiftDTO toEmployeeShiftDto(UserEntity user, ProjectMemberEntity member, List<ShiftDTO> shifts) {
         CalendarDTO.EmployeeShiftDTO dto = new CalendarDTO.EmployeeShiftDTO();
-        dto.setEmployeeId(user.getId().toString());
+        dto.setEmployeeId(user.getTelegramId().toString());
         dto.setName(user.getUsername());
         dto.setPosition(member.getPosition());
         dto.setRole(member.getRole().name().toLowerCase());

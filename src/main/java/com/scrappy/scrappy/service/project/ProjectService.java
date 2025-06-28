@@ -4,7 +4,6 @@ import com.scrappy.scrappy.controller.dto.project.*;
 import com.scrappy.scrappy.domain.*;
 import com.scrappy.scrappy.repository.*;
 
-import lombok.Data;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -14,6 +13,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class ProjectService {
@@ -39,8 +39,8 @@ public class ProjectService {
 
     @Transactional
     public ProjectDTO createProject(ProjectCreateDTO createDTO, Long userId) {
-        logger.debug("Creating project for userId: {}", userId);
-        UserEntity user = userRepository.findById(userId)
+        logger.debug("Creating project for telegramId: {}", userId);
+        UserEntity user = userRepository.findByTelegramId(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
         ProjectEntity project = projectMapper.toEntity(createDTO, user);
         ProjectEntity savedProject = projectRepository.save(project);
@@ -54,25 +54,30 @@ public class ProjectService {
 
     @Transactional(readOnly = true)
     public List<ProjectDTO> getAllProjects(Long userId) {
-        logger.debug("Fetching projects for userId: {}", userId);
-        UserEntity user = userRepository.findById(userId)
+        logger.debug("Fetching projects for telegramId: {}", userId);
+        UserEntity user = userRepository.findByTelegramId(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
         List<ProjectEntity> ownedProjects = projectRepository.findByOwner(user);
-        List<ProjectMemberEntity> memberships = projectMemberRepository.findAll().stream()
-                .filter(m -> m.getUser().getId().equals(userId))
-                .collect(Collectors.toList());
+        List<ProjectMemberEntity> memberships = projectMemberRepository.findByUser(user);
         List<ProjectEntity> memberProjects = memberships.stream()
                 .map(ProjectMemberEntity::getProject)
                 .collect(Collectors.toList());
 
-        return ownedProjects.stream()
-                .map(p -> projectMapper.toDto(p, ProjectRole.ADMIN))
+        // Combine owned and member projects, avoiding duplicates
+        List<ProjectEntity> allProjects = Stream.concat(ownedProjects.stream(), memberProjects.stream())
+                .distinct()
+                .collect(Collectors.toList());
+
+        return allProjects.stream()
+                .map(p -> projectMapper.toDto(p, getUserRole(p, userId)))
                 .collect(Collectors.toList());
     }
 
     @Transactional
     public ProjectDTO updateProject(UUID projectId, ProjectCreateDTO updateDTO, Long userId) {
-        logger.debug("Updating project {} for userId: {}", projectId, userId);
+        logger.debug("Updating project {} for telegramId: {}", projectId, userId);
+        UserEntity user = userRepository.findByTelegramId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
         ProjectEntity project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new IllegalArgumentException("Project not found: " + projectId));
         checkAdminAccess(project, userId);
@@ -83,7 +88,9 @@ public class ProjectService {
 
     @Transactional
     public void deleteProject(UUID projectId, Long userId) {
-        logger.debug("Deleting project {} for userId: {}", projectId, userId);
+        logger.debug("Deleting project {} for telegramId: {}", projectId, userId);
+        UserEntity user = userRepository.findByTelegramId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
         ProjectEntity project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new IllegalArgumentException("Project not found: " + projectId));
         checkAdminAccess(project, userId);
@@ -92,7 +99,9 @@ public class ProjectService {
 
     @Transactional
     public InviteDTO createInvite(UUID projectId, InviteCreateDTO inviteDTO, Long userId) {
-        logger.debug("Creating invite for project {} by userId: {}", projectId, userId);
+        logger.debug("Creating invite for project {} by telegramId: {}", projectId, userId);
+        UserEntity user = userRepository.findByTelegramId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
         ProjectEntity project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new IllegalArgumentException("Project not found: " + projectId));
         checkAdminAccess(project, userId);
@@ -104,7 +113,9 @@ public class ProjectService {
 
     @Transactional(readOnly = true)
     public MembersResponseDTO getMembers(UUID projectId, Long userId) {
-        logger.debug("Fetching members for project {} by userId: {}", projectId, userId);
+        logger.debug("Fetching members for project {} by telegramId: {}", projectId, userId);
+        UserEntity user = userRepository.findByTelegramId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
         ProjectEntity project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new IllegalArgumentException("Project not found: " + projectId));
         checkMemberAccess(project, userId);
@@ -122,12 +133,13 @@ public class ProjectService {
 
     @Transactional
     public void removeMember(UUID projectId, String userIdToRemove, Long userId) {
-        logger.debug("Removing member {} from project {} by userId: {}", userIdToRemove, projectId, userId);
+        logger.debug("Removing member {} from project {} by telegramId: {}", userIdToRemove, projectId, userId);
+        UserEntity user = userRepository.findByTelegramId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
         ProjectEntity project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new IllegalArgumentException("Project not found: " + projectId));
         checkAdminAccess(project, userId);
-        Long userIdLong = Long.parseLong(userIdToRemove); // Изменено с UUID на Long
-        UserEntity userToRemove = userRepository.findById(userIdLong)
+        UserEntity userToRemove = userRepository.findByTelegramId(Long.parseLong(userIdToRemove))
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + userIdToRemove));
         ProjectMemberEntity member = projectMemberRepository.findByProjectAndUser(project, userToRemove)
                 .orElseThrow(() -> new IllegalArgumentException("Member not found in project"));
@@ -136,15 +148,16 @@ public class ProjectService {
 
     @Transactional
     public ShiftDTO createShift(UUID projectId, ShiftCreateDTO createDTO, Long userId) {
-        logger.debug("Creating shift for project {} by userId: {}", projectId, userId);
+        logger.debug("Creating shift for project {} by telegramId: {}", projectId, userId);
+        UserEntity user = userRepository.findByTelegramId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
         ProjectEntity project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new IllegalArgumentException("Project not found: " + projectId));
         checkAdminAccess(project, userId);
-        Long userIdLong = Long.parseLong(createDTO.getUserId()); // Изменено с UUID на Long
-        UserEntity user = userRepository.findById(userIdLong)
+        UserEntity shiftUser = userRepository.findByTelegramId(Long.parseLong(createDTO.getUserId()))
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + createDTO.getUserId()));
-        checkMemberAccess(project, user.getId());
-        ShiftEntity shift = projectMapper.toShiftEntity(project, user, createDTO);
+        checkMemberAccess(project, shiftUser.getId());
+        ShiftEntity shift = projectMapper.toShiftEntity(project, shiftUser, createDTO);
         ShiftEntity savedShift = shiftRepository.save(shift);
         // TODO: Send Telegram notification
         return projectMapper.toShiftDto(savedShift);
@@ -152,7 +165,9 @@ public class ProjectService {
 
     @Transactional(readOnly = true)
     public CalendarDTO getShifts(UUID projectId, LocalDate startDate, int days, Long userId) {
-        logger.debug("Fetching shifts for project {} by userId: {}", projectId, userId);
+        logger.debug("Fetching shifts for project {} by telegramId: {}", projectId, userId);
+        UserEntity user = userRepository.findByTelegramId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
         ProjectEntity project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new IllegalArgumentException("Project not found: " + projectId));
         checkMemberAccess(project, userId);
@@ -181,24 +196,27 @@ public class ProjectService {
         return calendar;
     }
 
-    private void checkAdminAccess(ProjectEntity project, Long userId) {
-        ProjectMemberEntity member = projectMemberRepository.findByProjectAndUser(project, userRepository.findById(userId)
-                        .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId)))
+    private void checkAdminAccess(ProjectEntity project, Long telegramId) {
+        UserEntity user = userRepository.findByTelegramId(telegramId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + telegramId));
+        ProjectMemberEntity member = projectMemberRepository.findByProjectAndUser(project, user)
                 .orElseThrow(() -> new IllegalArgumentException("User is not a member of the project"));
         if (member.getRole() != ProjectRole.ADMIN) {
             throw new IllegalArgumentException("Only admins can perform this action");
         }
     }
 
-    private void checkMemberAccess(ProjectEntity project, Long userId) {
-        projectMemberRepository.findByProjectAndUser(project, userRepository.findById(userId)
-                        .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId)))
+    private void checkMemberAccess(ProjectEntity project, Long telegramId) {
+        UserEntity user = userRepository.findByTelegramId(telegramId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + telegramId));
+        projectMemberRepository.findByProjectAndUser(project, user)
                 .orElseThrow(() -> new IllegalArgumentException("User is not a member of the project"));
     }
 
-    private ProjectRole getUserRole(ProjectEntity project, Long userId) {
-        return projectMemberRepository.findByProjectAndUser(project, userRepository.findById(userId)
-                        .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId)))
+    private ProjectRole getUserRole(ProjectEntity project, Long telegramId) {
+        UserEntity user = userRepository.findByTelegramId(telegramId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + telegramId));
+        return projectMemberRepository.findByProjectAndUser(project, user)
                 .map(ProjectMemberEntity::getRole)
                 .orElse(null);
     }

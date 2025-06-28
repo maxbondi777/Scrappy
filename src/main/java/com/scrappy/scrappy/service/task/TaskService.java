@@ -14,7 +14,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
 import java.util.List;
 import java.util.Map;
@@ -167,10 +166,13 @@ public class TaskService {
         return dayProgress;
     }
 
+    @Transactional(readOnly = true)
     public List<TaskDTO> getTasksByUserId(Long telegramId) {
+        logger.debug("Fetching tasks by telegramId: {}", telegramId);
         UserEntity user = userRepository.findByTelegramId(telegramId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found with telegramId: " + telegramId));
         List<TaskEntity> tasks = taskRepository.findByUserId(user.getId());
+        logger.info("Found {} tasks for telegramId: {}", tasks.size(), telegramId);
         return tasks.stream()
                 .map(taskMapper::toDto)
                 .collect(Collectors.toList());

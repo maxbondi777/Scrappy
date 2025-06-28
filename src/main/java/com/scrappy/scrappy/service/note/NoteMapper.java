@@ -15,7 +15,7 @@ public class NoteMapper {
     public NoteDTO toDto(NoteEntity note) {
         NoteDTO dto = new NoteDTO();
         dto.setId(note.getId());
-        dto.setUserId(note.getUser().getId());
+        dto.setUserId(note.getUser().getTelegramId()); // Используем telegramId вместо id
         dto.setTitle(note.getTitle());
         dto.setContent(note.getContent());
         dto.setCategory(note.getCategory());
@@ -26,6 +26,7 @@ public class NoteMapper {
         return dto;
     }
 
+    // Остальные методы без изменений
     public NoteEntity toEntity(NoteCreateDTO createDTO, UserEntity user) {
         NoteEntity note = new NoteEntity();
         note.setUser(user);

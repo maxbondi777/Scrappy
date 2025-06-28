@@ -14,6 +14,6 @@ public class ProjectDTO {
     private String address;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private Long ownerId;
+    private Long ownerTelegramId;
     private String currentUserRole;
 }

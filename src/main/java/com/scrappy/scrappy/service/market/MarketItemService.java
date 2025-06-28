@@ -7,6 +7,7 @@ import com.scrappy.scrappy.domain.MarketItemEntity;
 import com.scrappy.scrappy.domain.UserEntity;
 import com.scrappy.scrappy.repository.CategoryRepository;
 import com.scrappy.scrappy.repository.MarketItemRepository;
+import com.scrappy.scrappy.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -22,11 +23,14 @@ public class MarketItemService {
     private final MarketItemRepository marketItemRepository;
     private final CategoryRepository categoryRepository;
     private final MarketItemMapper marketItemMapper;
+    private final UserRepository userRepository;
 
-    public MarketItemService(MarketItemRepository marketItemRepository, CategoryRepository categoryRepository, MarketItemMapper marketItemMapper) {
+    public MarketItemService(MarketItemRepository marketItemRepository, CategoryRepository categoryRepository,
+                             MarketItemMapper marketItemMapper, UserRepository userRepository) {
         this.marketItemRepository = marketItemRepository;
         this.categoryRepository = categoryRepository;
         this.marketItemMapper = marketItemMapper;
+        this.userRepository = userRepository;
     }
 
     @Transactional
@@ -34,10 +38,10 @@ public class MarketItemService {
         logger.debug("Creating market item with DTO: {}, userId: {}", createDTO, userId);
         CategoryEntity category = categoryRepository.findByName(createDTO.getCategory())
                 .orElseThrow(() -> new IllegalArgumentException("Category not found: " + createDTO.getCategory()));
+        UserEntity user = userRepository.findByTelegramId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with telegramId: " + userId));
         MarketItemEntity item = marketItemMapper.toEntity(createDTO, category);
-        UserEntity user = new UserEntity(); // Создаем временный объект пользователя
-        user.setId(userId); // Устанавливаем ID пользователя
-        item.setUser(user); // Привязываем пользователя
+        item.setUser(user);
         MarketItemEntity savedItem = marketItemRepository.save(item);
         return marketItemMapper.toDto(savedItem);
     }
@@ -45,8 +49,10 @@ public class MarketItemService {
     @Transactional(readOnly = true)
     public List<MarketItemDTO> getAllMarketItems(Long userId) {
         logger.debug("Fetching all market items for userId: {}", userId);
+        UserEntity user = userRepository.findByTelegramId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with telegramId: " + userId));
         return marketItemRepository.findAll().stream()
-                .filter(item -> item.getUser() == null || item.getUser().getId().equals(userId))
+                .filter(item -> item.getUser() == null || item.getUser().getId().equals(user.getId()))
                 .map(marketItemMapper::toDto)
                 .collect(Collectors.toList());
     }
@@ -54,8 +60,10 @@ public class MarketItemService {
     @Transactional(readOnly = true)
     public MarketItemDTO getMarketItemById(Long id, Long userId) {
         logger.debug("Fetching market item with id: {}, userId: {}", id, userId);
+        UserEntity user = userRepository.findByTelegramId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with telegramId: " + userId));
         return marketItemRepository.findById(id)
-                .filter(item -> item.getUser() == null || item.getUser().getId().equals(userId))
+                .filter(item -> item.getUser() == null || item.getUser().getId().equals(user.getId()))
                 .map(marketItemMapper::toDto)
                 .orElseThrow(() -> new IllegalArgumentException("Market item not found or access denied"));
     }
@@ -63,37 +71,38 @@ public class MarketItemService {
     @Transactional(readOnly = true)
     public List<MarketItemDTO> getMarketItemsByCategory(String category, Long userId) {
         logger.debug("Fetching market items for category: {}, userId: {}", category, userId);
+        UserEntity user = userRepository.findByTelegramId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with telegramId: " + userId));
         List<MarketItemDTO> items;
         switch (category.toLowerCase()) {
             case "all":
                 items = getAllMarketItems(userId);
                 break;
             case "purchased":
-                items = marketItemRepository.findByPurchasedTrueAndUserId(userId).stream()
-                        .filter(item -> item.getUser().getId().equals(userId))
+                items = marketItemRepository.findByPurchasedTrueAndUserId(user.getId()).stream()
                         .map(marketItemMapper::toDto)
                         .collect(Collectors.toList());
                 break;
             case "themes":
-                items = marketItemRepository.findByCategoryNameAndUserId("themes", userId).stream()
-                        .filter(item -> item.getUser().getId().equals(userId))
+                items = marketItemRepository.findByCategoryNameAndUserId("themes", user.getId()).stream()
                         .map(marketItemMapper::toDto)
                         .collect(Collectors.toList());
                 break;
             case "premium":
-                items = marketItemRepository.findByIsPremiumTrueAndUserId(userId).stream()
-                        .filter(item -> item.getUser().getId().equals(userId))
+                items = marketItemRepository.findByIsPremiumTrueAndUserId(user.getId()).stream()
                         .map(marketItemMapper::toDto)
                         .collect(Collectors.toList());
                 break;
             case "productivity":
-                items = marketItemRepository.findByCategoryNameAndUserId("productivity", userId).stream()
-                        .filter(item -> item.getUser().getId().equals(userId))
+                items = marketItemRepository.findByCategoryNameAndUserId("productivity", user.getId()).stream()
                         .map(marketItemMapper::toDto)
                         .collect(Collectors.toList());
                 break;
             default:
-                throw new IllegalArgumentException("Invalid category: " + category);
+                items = marketItemRepository.findByCategoryNameAndUserId(category, user.getId()).stream()
+                        .map(marketItemMapper::toDto)
+                        .collect(Collectors.toList());
+                break;
         }
         return items;
     }
@@ -101,8 +110,10 @@ public class MarketItemService {
     @Transactional(readOnly = true)
     public List<MarketItemDTO> searchMarketItems(String query, Long userId) {
         logger.debug("Searching market items with query: {}, userId: {}", query, userId);
+        UserEntity user = userRepository.findByTelegramId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with telegramId: " + userId));
         return marketItemRepository.searchByNameOrDescription(query).stream()
-                .filter(item -> item.getUser() == null || item.getUser().getId().equals(userId))
+                .filter(item -> item.getUser() == null || item.getUser().getId().equals(user.getId()))
                 .map(marketItemMapper::toDto)
                 .collect(Collectors.toList());
     }

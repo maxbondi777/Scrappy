@@ -101,10 +101,12 @@ public class TaskController {
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
-    @GetMapping("/{userId}")
+    @GetMapping(value = "/by-user/{userId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<List<TaskDTO>>> getTasks(@PathVariable Long userId,
                                                                @RequestHeader("X-User-Id") Long requestTelegramId) {
+        logger.debug("Received GET /tasks/by-user/{} for telegramId: {}", userId, requestTelegramId);
         if (!userId.equals(requestTelegramId)) {
+            logger.error("Access denied: User ID mismatch for userId: {}, telegramId: {}", userId, requestTelegramId);
             throw new IllegalArgumentException("Access denied: User ID mismatch");
         }
         List<TaskDTO> tasks = taskService.getTasksByUserId(userId);
