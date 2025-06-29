@@ -19,6 +19,57 @@ public class TaskController {
     @Autowired
     private TaskRepository taskRepository;
 
+    @GetMapping
+    public ResponseEntity<Iterable<Task>> getTasks(@RequestHeader("X-User-Id") Long userId) {
+        return ResponseEntity.ok(taskRepository.findAll());
+    }
+
+    @PostMapping
+    public ResponseEntity<Task> createTask(@RequestHeader("X-User-Id") Long userId, @RequestBody Task task) {
+        task.setUserId(userId);
+        task.setDate(new Date());
+        return ResponseEntity.ok(taskRepository.save(task));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Task> getTask(@PathVariable Long id, @RequestHeader("X-User-Id") Long userId) {
+        return taskRepository.findById(id)
+                .filter(task -> task.getUserId().equals(userId))
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Task> updateTask(@PathVariable Long id, @RequestHeader("X-User-Id") Long userId, @RequestBody Task task) {
+        return taskRepository.findById(id)
+                .filter(t -> t.getUserId().equals(userId))
+                .map(t -> {
+                    t.setStatus(task.getStatus());
+                    t.setDate(task.getDate());
+                    return ResponseEntity.ok(taskRepository.save(t));
+                }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<Task> updateTaskStatus(@PathVariable Long id, @RequestHeader("X-User-Id") Long userId, @RequestBody Map<String, String> status) {
+        return taskRepository.findById(id)
+                .filter(t -> t.getUserId().equals(userId))
+                .map(t -> {
+                    t.setStatus(Task.Status.valueOf(status.get("status")));
+                    return ResponseEntity.ok(taskRepository.save(t));
+                }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteTask(@PathVariable Long id, @RequestHeader("X-User-Id") Long userId) {
+        return taskRepository.findById(id)
+                .filter(task -> task.getUserId().equals(userId))
+                .map(task -> {
+                    taskRepository.delete(task);
+                    return ResponseEntity.ok().<Void>build();
+                }).orElse(ResponseEntity.notFound().build());
+    }
+
     @GetMapping("/statistics")
     public ResponseEntity<Map<String, Object>> getTaskStatistics(@RequestHeader("X-User-Id") Long userId) {
         long totalTasks = taskRepository.countByUserId(userId);
@@ -34,8 +85,9 @@ public class TaskController {
         for (java.time.DayOfWeek day : java.time.DayOfWeek.values()) {
             LocalDate dayStart = startOfWeek.plusDays(day.getValue() - 1);
             Date dateStart = Date.from(dayStart.atStartOfDay(ZoneId.systemDefault()).toInstant());
-            long dayTotal = taskRepository.findByUserIdAndDateBetween(userId, dateStart, dateStart).size();
-            long dayCompleted = taskRepository.findByUserIdAndDateBetween(userId, dateStart, dateStart)
+            Date dateEnd = Date.from(dayStart.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant());
+            long dayTotal = taskRepository.findByUserIdAndDateBetween(userId, dateStart, dateEnd).size();
+            long dayCompleted = taskRepository.findByUserIdAndDateBetween(userId, dateStart, dateEnd)
                     .stream().filter(t -> t.getStatus() == Task.Status.COMPLETED).count();
             weeklyProgress.put(day.toString().toLowerCase(), Map.of("completed", dayCompleted, "total", dayTotal));
         }

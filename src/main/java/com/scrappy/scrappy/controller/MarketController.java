@@ -31,9 +31,4 @@ public class MarketController {
     public ResponseEntity<List<MarketItem>> getItemsByCategory(@PathVariable String category) {
         return ResponseEntity.ok(marketItemRepository.findByCategory(category));
     }
-
-    @GetMapping("/search")
-    public ResponseEntity<List<MarketItem>> searchItems(@RequestParam String q) {
-        return ResponseEntity.ok(marketItemRepository.findByNameContainingIgnoreCaseOrDescriptionContainingIgnoreCase(q, q));
-    }
 }

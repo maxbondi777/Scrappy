@@ -25,14 +25,7 @@ public class NoteController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Note>> getNotes(@RequestHeader("X-User-Id") Long userId,
-                                               @RequestParam(required = false) String category,
-                                               @RequestParam(required = false) String search) {
-        if (category != null) {
-            return ResponseEntity.ok(noteRepository.findByUserIdAndCategory(userId, category));
-        } else if (search != null) {
-            return ResponseEntity.ok(noteRepository.findByUserIdAndTitleContainingIgnoreCaseOrTagsContainingIgnoreCase(userId, search, search));
-        }
+    public ResponseEntity<List<Note>> getNotes(@RequestHeader("X-User-Id") Long userId) {
         return ResponseEntity.ok(noteRepository.findByUserId(userId));
     }
 
