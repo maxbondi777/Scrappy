@@ -1,109 +1,82 @@
 package com.scrappy.scrappy.controller;
 
-import com.scrappy.scrappy.controller.dto.ApiResponse;
-import com.scrappy.scrappy.controller.dto.note.NoteCreateDTO;
-import com.scrappy.scrappy.controller.dto.note.NoteDTO;
-import com.scrappy.scrappy.controller.dto.note.NoteUpdateDTO;
-import com.scrappy.scrappy.controller.dto.note.NotesResponseDTO;
-import com.scrappy.scrappy.repository.UserRepository;
-import com.scrappy.scrappy.service.note.NoteService;
-import jakarta.validation.Valid;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
+import com.scrappy.scrappy.entity.Note;
+import com.scrappy.scrappy.repository.NoteRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.stream.Collectors;
+import java.util.Date;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/notes")
+@CrossOrigin(origins = {"http://localhost:5173", "https://localhost:5173", "https://192.168.1.186:5173", "http://192.168.1.186:5173"})
 public class NoteController {
+    @Autowired
+    private NoteRepository noteRepository;
 
-    private static final Logger logger = LoggerFactory.getLogger(NoteController.class);
-    private final NoteService noteService;
-    private final UserRepository userRepository;
-
-    public NoteController(NoteService noteService, UserRepository userRepository) {
-        this.noteService = noteService;
-        this.userRepository = userRepository;
+    @PostMapping
+    public ResponseEntity<Note> createNote(@RequestHeader("X-User-Id") Long userId, @RequestBody Note note) {
+        note.setUserId(userId);
+        note.setCreatedAt(new Date());
+        note.setUpdatedAt(new Date());
+        return ResponseEntity.ok(noteRepository.save(note));
     }
 
-    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<ApiResponse<NoteDTO>> createNote(@Valid @RequestBody NoteCreateDTO createDTO,
-                                                           @RequestHeader("X-User-Id") Long userId) {
-        logger.debug("Received POST /api/notes for userId: {}", userId);
-        NoteDTO noteDTO = noteService.createNote(createDTO, userId);
-        ApiResponse<NoteDTO> response = new ApiResponse<>(noteDTO, null);
-        return new ResponseEntity<>(response, HttpStatus.CREATED);
+    @GetMapping
+    public ResponseEntity<List<Note>> getNotes(@RequestHeader("X-User-Id") Long userId,
+                                               @RequestParam(required = false) String category,
+                                               @RequestParam(required = false) String search) {
+        if (category != null) {
+            return ResponseEntity.ok(noteRepository.findByUserIdAndCategory(userId, category));
+        } else if (search != null) {
+            return ResponseEntity.ok(noteRepository.findByUserIdAndTitleContainingIgnoreCaseOrTagsContainingIgnoreCase(userId, search, search));
+        }
+        return ResponseEntity.ok(noteRepository.findByUserId(userId));
     }
 
-    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<ApiResponse<NotesResponseDTO>> getNotes(
-            @RequestHeader("X-User-Id") Long userId,
-            @RequestParam(value = "category", required = false) String category,
-            @RequestParam(value = "search", required = false) String search,
-            @RequestParam(value = "page", defaultValue = "0") int page,
-            @RequestParam(value = "size", defaultValue = "10") int size) {
-        logger.debug("Received GET /api/notes for userId: {}", userId);
-        NotesResponseDTO responseDTO = noteService.getNotes(userId, category, search, page, size);
-        ApiResponse<NotesResponseDTO> response = new ApiResponse<>(responseDTO, null);
-        return new ResponseEntity<>(response, HttpStatus.OK);
+    @GetMapping("/{id}")
+    public ResponseEntity<Note> getNote(@PathVariable Long id, @RequestHeader("X-User-Id") Long userId) {
+        return noteRepository.findById(id)
+                .filter(note -> note.getUserId().equals(userId))
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
-    @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<ApiResponse<NoteDTO>> getNoteById(@PathVariable Long id,
-                                                            @RequestHeader("X-User-Id") Long userId) {
-        logger.debug("Received GET /api/notes/{} for userId: {}", id, userId);
-        NoteDTO noteDTO = noteService.getNoteById(id, userId);
-        ApiResponse<NoteDTO> response = new ApiResponse<>(noteDTO, null);
-        return new ResponseEntity<>(response, HttpStatus.OK);
+    @PutMapping("/{id}")
+    public ResponseEntity<Note> updateNote(@PathVariable Long id, @RequestHeader("X-User-Id") Long userId, @RequestBody Note note) {
+        return noteRepository.findById(id)
+                .filter(n -> n.getUserId().equals(userId))
+                .map(n -> {
+                    n.setTitle(note.getTitle());
+                    n.setContent(note.getContent());
+                    n.setCategory(note.getCategory());
+                    n.setTags(note.getTags());
+                    n.setPinned(note.isPinned());
+                    n.setUpdatedAt(new Date());
+                    return ResponseEntity.ok(noteRepository.save(n));
+                }).orElse(ResponseEntity.notFound().build());
     }
 
-    @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<ApiResponse<NoteDTO>> updateNote(@PathVariable Long id,
-                                                           @Valid @RequestBody NoteUpdateDTO updateDTO,
-                                                           @RequestHeader("X-User-Id") Long userId) {
-        logger.debug("Received PUT /api/notes/{} for userId: {}", id, userId);
-        NoteDTO noteDTO = noteService.updateNote(id, updateDTO, userId);
-        ApiResponse<NoteDTO> response = new ApiResponse<>(noteDTO, null);
-        return new ResponseEntity<>(response, HttpStatus.OK);
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteNote(@PathVariable Long id, @RequestHeader("X-User-Id") Long userId) {
+        return noteRepository.findById(id)
+                .filter(note -> note.getUserId().equals(userId))
+                .map(note -> {
+                    noteRepository.delete(note);
+                    return ResponseEntity.ok().<Void>build();
+                }).orElse(ResponseEntity.notFound().build());
     }
 
-    @DeleteMapping(value = "/{id}")
-    public ResponseEntity<ApiResponse<Void>> deleteNote(@PathVariable Long id,
-                                                        @RequestHeader("X-User-Id") Long userId) {
-        logger.debug("Received DELETE /api/notes/{} for userId: {}", id, userId);
-        noteService.deleteNote(id, userId);
-        ApiResponse<Void> response = new ApiResponse<>(null, null);
-        return new ResponseEntity<>(response, HttpStatus.NO_CONTENT);
-    }
-
-    @PatchMapping(value = "/{id}/pin", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<ApiResponse<NoteDTO>> togglePin(@PathVariable Long id,
-                                                          @RequestHeader("X-User-Id") Long userId) {
-        logger.debug("Received PATCH /api/notes/{}/pin for userId: {}", id, userId);
-        NoteDTO noteDTO = noteService.togglePin(id, userId);
-        ApiResponse<NoteDTO> response = new ApiResponse<>(noteDTO, null);
-        return new ResponseEntity<>(response, HttpStatus.OK);
-    }
-
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ApiResponse<Void>> handleIllegalArgumentException(IllegalArgumentException ex) {
-        logger.error("Illegal argument error: {}", ex.getMessage());
-        ApiResponse<Void> response = new ApiResponse<>(null, ex.getMessage());
-        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
-    }
-
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<Void>> handleValidationException(MethodArgumentNotValidException ex) {
-        logger.error("Validation error: {}", ex.getMessage());
-        String errorMessage = ex.getBindingResult().getFieldErrors().stream()
-                .map(error -> error.getField() + ": " + error.getDefaultMessage())
-                .collect(Collectors.joining("; "));
-        ApiResponse<Void> response = new ApiResponse<>(null, errorMessage);
-        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    @PatchMapping("/{id}/pin")
+    public ResponseEntity<Note> pinNote(@PathVariable Long id, @RequestHeader("X-User-Id") Long userId) {
+        return noteRepository.findById(id)
+                .filter(note -> note.getUserId().equals(userId))
+                .map(note -> {
+                    note.setPinned(!note.isPinned());
+                    note.setUpdatedAt(new Date());
+                    return ResponseEntity.ok(noteRepository.save(note));
+                }).orElse(ResponseEntity.notFound().build());
     }
 }

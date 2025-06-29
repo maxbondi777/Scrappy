@@ -1,23 +1,28 @@
-package com.scrappy.scrappy.controller.dto.market;
+package com.scrappy.scrappy.entity;
 
+import jakarta.persistence.*;
 import lombok.Data;
 
 import java.util.List;
 
+@Entity
 @Data
-public class MarketItemDTO {
+@Table(name = "market_items")
+public class MarketItem {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
     private String name;
     private String subtitle;
     private String description;
-    private int price;
+    private double price;
     private String category;
     private double rating;
     private int downloads;
-    private String iconComponent;
     private String iconGradient;
     private List<String> features;
-    private int discount;
+    private double discount;
     private boolean isNew;
     private boolean isHot;
     private boolean isPremium;
