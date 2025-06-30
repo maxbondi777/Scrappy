@@ -7,4 +7,7 @@ import java.util.List;
 
 public interface MarketItemRepository extends JpaRepository<MarketItem, Long> {
     List<MarketItem> findByCategory(String category);
+    List<MarketItem> findByPurchasedTrue();
+    List<MarketItem> findByIsPremiumTrue();
+    List<MarketItem> findByNameContainingIgnoreCaseOrDescriptionContainingIgnoreCase(String name, String description);
 }

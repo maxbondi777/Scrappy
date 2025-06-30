@@ -1,12 +1,15 @@
 package com.scrappy.scrappy.controller;
 
 import com.scrappy.scrappy.entity.Task;
+import com.scrappy.scrappy.entity.User;
 import com.scrappy.scrappy.repository.TaskRepository;
+import com.scrappy.scrappy.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
 import java.util.HashMap;
@@ -18,31 +21,37 @@ import java.util.Map;
 public class TaskController {
     @Autowired
     private TaskRepository taskRepository;
+    @Autowired
+    private UserService userService;
 
     @GetMapping
-    public ResponseEntity<Iterable<Task>> getTasks(@RequestHeader("X-User-Id") Long userId) {
-        return ResponseEntity.ok(taskRepository.findAll());
+    public ResponseEntity<Iterable<Task>> getTasks(@RequestHeader("X-User-Id") Long telegramId) {
+        User user = userService.getUser(String.valueOf(telegramId));
+        return ResponseEntity.ok(taskRepository.findByUserId(user.getId()));
     }
 
     @PostMapping
-    public ResponseEntity<Task> createTask(@RequestHeader("X-User-Id") Long userId, @RequestBody Task task) {
-        task.setUserId(userId);
-        task.setDate(new Date());
+    public ResponseEntity<Task> createTask(@RequestHeader("X-User-Id") Long telegramId, @RequestBody Task task) {
+        User user = userService.getUser(String.valueOf(telegramId));
+        task.setUser(user);
+        task.setDate(LocalDateTime.now());
         return ResponseEntity.ok(taskRepository.save(task));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Task> getTask(@PathVariable Long id, @RequestHeader("X-User-Id") Long userId) {
+    public ResponseEntity<Task> getTask(@PathVariable Long id, @RequestHeader("X-User-Id") Long telegramId) {
+        User user = userService.getUser(String.valueOf(telegramId));
         return taskRepository.findById(id)
-                .filter(task -> task.getUserId().equals(userId))
+                .filter(task -> task.getUser().getId().equals(user.getId()))
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Task> updateTask(@PathVariable Long id, @RequestHeader("X-User-Id") Long userId, @RequestBody Task task) {
+    public ResponseEntity<Task> updateTask(@PathVariable Long id, @RequestHeader("X-User-Id") Long telegramId, @RequestBody Task task) {
+        User user = userService.getUser(String.valueOf(telegramId));
         return taskRepository.findById(id)
-                .filter(t -> t.getUserId().equals(userId))
+                .filter(t -> t.getUser().getId().equals(user.getId()))
                 .map(t -> {
                     t.setStatus(task.getStatus());
                     t.setDate(task.getDate());
@@ -51,9 +60,10 @@ public class TaskController {
     }
 
     @PatchMapping("/{id}/status")
-    public ResponseEntity<Task> updateTaskStatus(@PathVariable Long id, @RequestHeader("X-User-Id") Long userId, @RequestBody Map<String, String> status) {
+    public ResponseEntity<Task> updateTaskStatus(@PathVariable Long id, @RequestHeader("X-User-Id") Long telegramId, @RequestBody Map<String, String> status) {
+        User user = userService.getUser(String.valueOf(telegramId));
         return taskRepository.findById(id)
-                .filter(t -> t.getUserId().equals(userId))
+                .filter(t -> t.getUser().getId().equals(user.getId()))
                 .map(t -> {
                     t.setStatus(Task.Status.valueOf(status.get("status")));
                     return ResponseEntity.ok(taskRepository.save(t));
@@ -61,9 +71,10 @@ public class TaskController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteTask(@PathVariable Long id, @RequestHeader("X-User-Id") Long userId) {
+    public ResponseEntity<Void> deleteTask(@PathVariable Long id, @RequestHeader("X-User-Id") Long telegramId) {
+        User user = userService.getUser(String.valueOf(telegramId));
         return taskRepository.findById(id)
-                .filter(task -> task.getUserId().equals(userId))
+                .filter(task -> task.getUser().getId().equals(user.getId()))
                 .map(task -> {
                     taskRepository.delete(task);
                     return ResponseEntity.ok().<Void>build();
@@ -71,10 +82,11 @@ public class TaskController {
     }
 
     @GetMapping("/statistics")
-    public ResponseEntity<Map<String, Object>> getTaskStatistics(@RequestHeader("X-User-Id") Long userId) {
-        long totalTasks = taskRepository.countByUserId(userId);
-        long completed = taskRepository.countByUserIdAndStatus(userId, Task.Status.COMPLETED);
-        long inProgress = taskRepository.countByUserIdAndStatus(userId, Task.Status.PENDING);
+    public ResponseEntity<Map<String, Object>> getTaskStatistics(@RequestHeader("X-User-Id") Long telegramId) {
+        User user = userService.getUser(String.valueOf(telegramId));
+        long totalTasks = taskRepository.countByUserId(user.getId());
+        long completed = taskRepository.countByUserIdAndStatus(user.getId(), Task.Status.COMPLETED);
+        long inProgress = taskRepository.countByUserIdAndStatus(user.getId(), Task.Status.PENDING);
         double completionRate = totalTasks == 0 ? 0 : Math.round((completed / (double) totalTasks) * 100);
 
         LocalDate now = LocalDate.now();
@@ -84,10 +96,10 @@ public class TaskController {
         Map<String, Map<String, Long>> weeklyProgress = new HashMap<>();
         for (java.time.DayOfWeek day : java.time.DayOfWeek.values()) {
             LocalDate dayStart = startOfWeek.plusDays(day.getValue() - 1);
-            Date dateStart = Date.from(dayStart.atStartOfDay(ZoneId.systemDefault()).toInstant());
-            Date dateEnd = Date.from(dayStart.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant());
-            long dayTotal = taskRepository.findByUserIdAndDateBetween(userId, dateStart, dateEnd).size();
-            long dayCompleted = taskRepository.findByUserIdAndDateBetween(userId, dateStart, dateEnd)
+            LocalDateTime dateStart = dayStart.atStartOfDay(ZoneId.systemDefault()).toLocalDateTime();
+            LocalDateTime dateEnd = dateStart.plusDays(1);
+            long dayTotal = taskRepository.findByUserIdAndDateBetween(user.getId(), dateStart, dateEnd).size();
+            long dayCompleted = taskRepository.findByUserIdAndDateBetween(user.getId(), dateStart, dateEnd)
                     .stream().filter(t -> t.getStatus() == Task.Status.COMPLETED).count();
             weeklyProgress.put(day.toString().toLowerCase(), Map.of("completed", dayCompleted, "total", dayTotal));
         }

@@ -3,6 +3,7 @@ package com.scrappy.scrappy.entity;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.UUID;
 
@@ -14,14 +15,16 @@ public class Shift {
     @Column(columnDefinition = "uuid")
     private UUID id = UUID.randomUUID();
 
-    @Column(nullable = false)
-    private UUID projectId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_id", nullable = false)
+    private Project project;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
     @Column(nullable = false)
-    private UUID userId;
-
-    @Column(nullable = false)
-    private Date date;
+    private LocalDateTime date;
 
     @Column(nullable = false)
     private String startTime;
@@ -29,6 +32,11 @@ public class Shift {
     @Column(nullable = false)
     private String endTime;
 
-    @Column(nullable = false)
-    private Date createdAt = new Date();
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+    }
 }

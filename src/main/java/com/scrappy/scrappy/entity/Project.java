@@ -3,7 +3,7 @@ package com.scrappy.scrappy.entity;
 import jakarta.persistence.*;
 import lombok.Data;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
@@ -13,6 +13,10 @@ public class Project {
     @Id
     @Column(columnDefinition = "uuid")
     private UUID id = UUID.randomUUID();
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id", nullable = false)
+    private User owner;
 
     @Column(nullable = false, length = 100)
     private String name;
@@ -25,12 +29,20 @@ public class Project {
 
     private String address;
 
-    @Column(nullable = false)
-    private Date createdAt = new Date();
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
 
-    @Column(nullable = false)
-    private Date updatedAt = new Date();
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 
-    @Column(nullable = false)
-    private UUID ownerId;
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 }

@@ -13,20 +13,25 @@ public class MarketItem {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false)
     private String name;
+
     private String subtitle;
     private String description;
-    private double price;
+    private Integer price;
     private String category;
-    private double rating;
-    private int downloads;
+    private Double rating;
+    private Integer downloads;
+    private String iconComponent;
     private String iconGradient;
+    @ElementCollection
     private List<String> features;
-    private double discount;
-    private boolean isNew;
-    private boolean isHot;
-    private boolean isPremium;
+    private Integer discount;
+    private Boolean isNew;
+    private Boolean isHot;
+    private Boolean isPremium;
     private String rarity;
+    @ElementCollection
     private List<String> tags;
-    private boolean purchased;
+    private Boolean purchased;
 }

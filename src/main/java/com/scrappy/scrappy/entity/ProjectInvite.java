@@ -2,6 +2,7 @@ package com.scrappy.scrappy.entity;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.UUID;
 
@@ -11,10 +12,11 @@ import java.util.UUID;
 public class ProjectInvite {
     @Id
     @Column(columnDefinition = "uuid")
-    private UUID inviteId = UUID.randomUUID();
+    private UUID id = UUID.randomUUID();
 
-    @Column(nullable = false)
-    private UUID projectId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_id", nullable = false)
+    private Project project;
 
     @Column(nullable = false)
     private String telegramUsername;
@@ -24,9 +26,15 @@ public class ProjectInvite {
 
     private String position;
 
-    @Column(nullable = false)
-    private Date invitedAt = new Date();
+    @Column(name = "invited_at", updatable = false)
+    private LocalDateTime invitedAt;
 
-    @Column(nullable = false)
-    private Date expiresAt = new Date(System.currentTimeMillis() + 72 * 60 * 60 * 1000);
+    @Column(name = "expires_at", nullable = false)
+    private LocalDateTime expiresAt;
+
+    @PrePersist
+    protected void onCreate() {
+        invitedAt = LocalDateTime.now();
+        expiresAt = invitedAt.plusHours(72);
+    }
 }

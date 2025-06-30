@@ -3,6 +3,7 @@ package com.scrappy.scrappy.entity;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.UUID;
 
@@ -14,17 +15,24 @@ public class ProjectMember {
     @Column(columnDefinition = "uuid")
     private UUID id = UUID.randomUUID();
 
-    @Column(nullable = false)
-    private UUID projectId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_id", nullable = false)
+    private Project project;
 
-    @Column(nullable = false)
-    private UUID userId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
     @Column(nullable = false)
     private String role;
 
     private String position;
 
-    @Column(nullable = false)
-    private Date joinedAt = new Date();
+    @Column(name = "joined_at", updatable = false)
+    private LocalDateTime joinedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        joinedAt = LocalDateTime.now();
+    }
 }

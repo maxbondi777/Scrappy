@@ -28,7 +28,6 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-web")
 	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
 	implementation("org.springframework.boot:spring-boot-starter-validation")
-	implementation("org.springframework.boot:spring-boot-starter-security")
 	implementation("com.fasterxml.jackson.core:jackson-databind:2.15.2")
 	runtimeOnly("org.postgresql:postgresql:42.7.7")
 	compileOnly("org.projectlombok:lombok:1.18.32")
